@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <tuple>
 #include <vector>
+#include <numeric>
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
@@ -45,35 +46,24 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
   gsl_matrix *X, *cov;
   gsl_vector *y, *w, *c;
 
-  X = gsl_matrix_alloc (n, p+1);
+  X = gsl_matrix_alloc (n, p);
   y = gsl_vector_alloc (n);
 
-  c = gsl_vector_alloc (p+1);
-  cov = gsl_matrix_alloc (p+1, p+1);
+  c = gsl_vector_alloc (p);
+  cov = gsl_matrix_alloc (p, p);
   for (size_t i=0; i<n; ++i) {
-    gsl_matrix_set(X, i, 0, 1.);
     for (size_t j=0; j<p; ++j)
-      gsl_matrix_set(X, i, j+1, xx[i*p+j]);
+      gsl_matrix_set(X, i, j, xx[i*p+j]);
     gsl_vector_set(y, i, yy[i]);
   }
   {
-    gsl_multifit_linear_workspace *work =gsl_multifit_linear_alloc(n, p+1);
+    gsl_multifit_linear_workspace *work =gsl_multifit_linear_alloc(n, p);
     gsl_multifit_linear (X, y, c, cov, &chisq, work);
     gsl_multifit_linear_free (work);
   }
 
-  for (size_t i=0; i<p+1; ++i) 
-    if (isnan(ww[i] = gsl_vector_get( c, i))) {
-      /*
-	printf("\n");
-	for (size_t j=0; j<n; ++j) { 
-	  for (size_t h=0; h<p; ++h) 
-	    printf("%lf ", xx[j*p+h]);
-	  printf("%lf\n", yy[j]);
-	}
-	exit(EXIT_FAILURE);
-      */
-      }
+  for (size_t i=0; i<p; ++i) 
+    if (isnan(ww[i] = gsl_vector_get( c, i))) {}
 
   gsl_matrix_free (X);
   gsl_vector_free (y);
@@ -248,19 +238,25 @@ int main() {
     double w[3]; 
     while (jj!=0) {
       int client_id=client_ids[jj];
+      x.push_back(1.);
       x.push_back(log(get<0>(client_group[client_id])+1));
       x.push_back(log(get<1>(client_group[client_id])+1));
       y.push_back(log(demands[jj]+1));
       jj = next_id_prod[jj];
     }
-    if (y.size() >= 5) {
-      linear_regression(&x[0], &y[0], y.size(), 2, w);
-      fprintf(aggregate_file, "%d,%d,%ld,%lf,%lf,%lf\n", 
-	      get<0>(itr->first), get<1>(itr->first), 
-	      y.size(), w[0], w[1], w[2]);
-      if (fabs(w[0]) < 5)
+    float avg = accumulate(y.begin(), y.end(), 0) / y.size();
+    if (y.size() > 10) {
+      linear_regression(&x[0], &y[0], y.size(), 3, w);
+      if (fabs(w[0]) < 5) {
+	fprintf(aggregate_file, "%d,%d,%ld,%lf,%lf,%lf\n", 
+		get<0>(itr->first), get<1>(itr->first), 
+		y.size(), w[0], w[1], w[2]);	
 	product_group_coeff[itr->first] = make_tuple(w[0], w[1], w[2]);
-    } else {
+      } else {
+	product_group_coeff[itr->first] = make_tuple(avg, 0., 0.);
+      }
+    } else {      
+	product_group_coeff[itr->first] = make_tuple(avg, 0., 0.);
     }
     x.clear(); y.clear();
     if (count % 1000 == 0 || count == size_of_group) {
@@ -298,13 +294,15 @@ int main() {
     } else {
       auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
       if (regress != product_group_coeff.end()) {
-	float estimate = get<0>(regress->second) 
+	float estimate = get<0>(regress->second)
 	  + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
 	  + get<2>(regress->second) * log(get<0>(client_group[Cliente_ID])+1);
-	if (estimate > 0)
+	if (estimate > 0 && estimate < 15)
 	  fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);
-	else {
-	  fprintf(submit_file, "%d,%.2f\n", id, 3.92);
+	else if (estimate < 0) {
+	  fprintf(submit_file, "%d,%.2f\n", id, 0.);
+	} else {
+	  fprintf(submit_file, "%d,%.2f\n", id, 3.92);    
 	}
       } else {
         // do something non-trivial 
