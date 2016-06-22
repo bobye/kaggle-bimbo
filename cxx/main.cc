@@ -75,17 +75,14 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 int main() {
   using namespace std;
 
-  /* scan through all data */
-  FILE *train_file;
-  train_file=fopen("../train.csv", "r");
-  if (train_file == NULL)
-    exit(EXIT_FAILURE);
+  /* use validation */
+  bool use_valid = true;
+
 
   /* basic line reader utility */
   char *line = NULL; 
   size_t len = 0;
   ssize_t read;
-  read = getline(&line, &len, train_file);   // skip the first line
   
   /* basic data structure */
   unordered_map<tuple<int, int, int, char>, size_t> last_group;
@@ -96,7 +93,7 @@ int main() {
   short int* demands; 
   char* months; 
   int* client_ids;
-  size_t count = 1, max_count=74180465, num_of_products=2592;
+  size_t count, t_count, max_count=74180465, num_of_products=2592;
   next_id = (size_t*) calloc(max_count, sizeof(size_t));
   next_id_prod = (size_t*) calloc(max_count, sizeof(size_t));
   demands = (short int*)    malloc(max_count * sizeof(short int));
@@ -104,24 +101,32 @@ int main() {
   client_ids = (int*) malloc(max_count * sizeof(int));
 
   /* scanning training file */
+  FILE *train_file;
+  train_file=fopen("../train.csv", "r");
+  if (train_file == NULL)
+    exit(EXIT_FAILURE);
   cout << "File Scan:\n";
-  while ((read = getline(&line, &len, train_file)) != -1 && count < max_count) {
+  read = getline(&line, &len, train_file);   // skip the first line
+  t_count = 1;
+  while ((read = getline(&line, &len, train_file)) != -1 && t_count < max_count) {
     int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
     float Venta_hoy,Dev_proxima;
 
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
 
-    months[count]= Semana;
-    demands[count] = Demanda_uni_equil;
-    client_ids[count] = Cliente_ID;
+    if (Semana == 9 && use_valid) break;
+
+    months[t_count]= Semana;
+    demands[t_count] = Demanda_uni_equil;
+    client_ids[t_count] = Cliente_ID;
     {
       auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
       auto itr = last_group.find(key);
       if (itr == last_group.end()) {
-	last_group[key] = count;
+	last_group[key] = t_count;
       } else {
-	next_id[count] = itr->second;
-	itr->second = count;
+	next_id[t_count] = itr->second;
+	itr->second = t_count;
       }
     }
 
@@ -129,10 +134,10 @@ int main() {
       auto key = make_tuple(Producto_ID, Agencia_ID);
       auto itr = product_group.find(key);
       if (itr == product_group.end()) {
-	product_group[key] = count;
+	product_group[key] = t_count;
       } else {
-	next_id_prod[count] = itr->second;
-	itr->second = count;
+	next_id_prod[t_count] = itr->second;
+	itr->second = t_count;
       }
     }
     
@@ -150,13 +155,13 @@ int main() {
       }
     }
 
-
-    if (count%10000==0 || count == max_count) {
-      prt_progress_bar((float) count / (float) max_count);
+    
+    if (t_count%10000==0 || t_count == max_count) {
+      prt_progress_bar((float) t_count / (float) max_count);
     }
-    count ++;
-  }
-  fclose(train_file);
+    t_count ++;
+  }  
+  //  fclose(train_file);
   printf("\n");
 
   /* load product weights */
@@ -247,7 +252,7 @@ int main() {
     float avg = accumulate(y.begin(), y.end(), 0) / y.size();
     if (y.size() > 10) {
       linear_regression(&x[0], &y[0], y.size(), 3, w);
-      if (fabs(w[0]) < 5) {
+      if (fabs(w[0]) < 5 && w[1] >= 0) {
 	fprintf(aggregate_file, "%d,%d,%ld,%lf,%lf,%lf\n", 
 		get<0>(itr->first), get<1>(itr->first), 
 		y.size(), w[0], w[1], w[2]);	
@@ -269,7 +274,56 @@ int main() {
   product_group.clear();
   free(next_id_prod);
   free(client_ids);
-  
+
+
+  /* re-scan for validation */
+  float err_part0 = 0, err_part1 = 0, err_part2 = 0, valid_count=0;
+  cout << "File Scan Resume:\n";
+  do {
+    int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
+    float Venta_hoy,Dev_proxima;
+
+    sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
+
+    if (Semana == 9 && use_valid) {
+      auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
+      auto itr = last_group.find(key);
+      float logmean=0, err;
+      if (itr != last_group.end()) {      
+	logmean = get_logmean(itr->second, demands, next_id);
+	err=(log(Demanda_uni_equil+1) - logmean); err=err*err;
+	err_part0 += err;
+	valid_count ++;
+      } else {
+	auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
+	float estimate = log(3.92+1);
+	if (regress != product_group_coeff.end()) {
+	  estimate = get<0>(regress->second)
+	    + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
+	    + get<2>(regress->second) * log(get<0>(client_group[Cliente_ID])+1);
+	  if (estimate <= 0 || estimate > 15)
+	    estimate = log(3.92+1);
+	} else {
+	}
+	err=(log(Demanda_uni_equil+1) - estimate); err=err*err;
+	if (fabs(estimate - log(3.92+1)) < 0.001) err_part2 += err;
+	else err_part1 += err;
+	valid_count ++;
+      }
+      
+    }
+    if (t_count%10000==0 || t_count == max_count) {
+      prt_progress_bar((float) t_count / (float) max_count);
+    }
+    t_count ++;
+  }
+  while ((read = getline(&line, &len, train_file)) != -1 && t_count < max_count);
+  fclose(train_file);
+  printf("\n");
+  printf("Part0:%f\tPart1:%f\tPart2:%f\tValidation Score:%f\n", err_part0, err_part1, err_part2,
+	 sqrt((err_part0+err_part1+err_part2) / valid_count));
+
+  if (!use_valid) {
   /* write submit files */
   FILE *test_file, *submit_file;
   test_file = fopen("../test.csv", "r");
@@ -293,21 +347,16 @@ int main() {
       fprintf(submit_file, "%d,%.2f\n", id, exp(logmean)-1);    
     } else {
       auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
+      float estimate = log(3.92+1);
       if (regress != product_group_coeff.end()) {
-	float estimate = get<0>(regress->second)
+	estimate = get<0>(regress->second)
 	  + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
 	  + get<2>(regress->second) * log(get<0>(client_group[Cliente_ID])+1);
-	if (estimate > 0 && estimate < 15)
-	  fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);
-	else if (estimate < 0) {
-	  fprintf(submit_file, "%d,%.2f\n", id, 0.);
-	} else {
-	  fprintf(submit_file, "%d,%.2f\n", id, 3.92);    
-	}
+	if (estimate <= 0 || estimate > 15)
+	  estimate = log(3.92+1);
       } else {
-        // do something non-trivial 
-	fprintf(submit_file, "%d,%.2f\n", id, 3.92);    
       }
+      fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);    
     }
     if (count % 10000 == 0 || count == max_count) {
       prt_progress_bar((float) count / (float) max_count);
@@ -317,7 +366,7 @@ int main() {
   fclose(test_file);
   fclose(submit_file);
   printf("\n");
-
+  }
 
   free(next_id); 
   free(demands); free(months); 
