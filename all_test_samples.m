@@ -33,11 +33,10 @@ for i=1:n
     if (demand(mod(i-1,batch_size)+1) == -1)        
         estimate(i)=single_test_sample(i-1, -1);
     else
-        tmp=logmean(id_and_demand(id_and_demand(:,1) == (i-1) & id_and_demand(:,3)==1, 2));
-        if isnan(tmp)
-            tmp=logmean(id_and_demand(id_and_demand(:,1) == (i-1), 2));
-        end
-        estimate(i)=tmp;
+        estimate(i)=logmean(id_and_demand(id_and_demand(:,1) == (i-1) & id_and_demand(:,3)==1, 2));
+        if isnan(estimate(i))
+            estimate(i)=logmean(id_and_demand(id_and_demand(:,1) == (i-1), 2));
+        end        
     end
 %    estimate(i)=single_test_sample(i-1, demand(mod(i-1,1000)+1));
     if mod(i,1000) == 1
