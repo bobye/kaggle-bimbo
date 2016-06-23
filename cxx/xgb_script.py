@@ -1,21 +1,43 @@
 import xgboost as xgb
 import numpy as np
+import pandas as pd
 
-print 'start to load data ... '
-valid_data = np.loadtxt("valid.csv")
-data=valid_data[:,0:(valid_data.shape[1]-1)]
-label=valid_data[:,valid_data.shape[1]-1]
-del valid_data
+task='train' # {'train','cv','predict'}
+param = {'max_depth':2, 'eta':0.8, 'silent':1, 'objective':'reg:linear'}
+model_name='0001.model'
 
-print 'done; prepare training'
-dtrain = xgb.DMatrix(data, label=np.log(label+1), missing = -999.0)
+if task == 'train' or task == 'cv':
+    print 'start to load training data ... '
+    valid_data = np.loadtxt("valid.csv")
+    data=valid_data[:,0:(valid_data.shape[1]-1)]
+    label=valid_data[:,valid_data.shape[1]-1]
+    del valid_data
 
-print 'done; start cv'
-param = {'max_depth':2, 'eta':0.9, 'silent':1, 'objective':'reg:linear'}
-
-res = xgb.cv(param, dtrain, num_boost_round=100, nfold=5,
-             metrics={'rmse'}, seed = 0,
-             callbacks=[xgb.callback.print_evaluation(show_stdv=False),
-                        xgb.callback.early_stop(3)])
+    print 'prepare training'
+    dtrain = xgb.DMatrix(data, label=np.log(label+1), missing = -999.0)
 
 
+if task == 'cv':
+    print 'start cv'
+
+    res = xgb.cv(param, dtrain, num_boost_round=200, nfold=5,
+                 metrics={'rmse'}, seed = 0,
+                 callbacks=[xgb.callback.print_evaluation(show_stdv=False),
+                            xgb.callback.early_stop(3)])
+
+if task == 'train':
+    num_round = 100;
+    bst = xgb.train(param, dtrain, num_boost_round=num_round
+                    [(dtrain,'train')], verbose_eval=True);
+
+    bst.save_model(model_name);
+
+if task == 'predict':
+    test_data = np.loadtxt("test_feature.csv");    
+    dtest = xgb.DMatrix(test_data, missing = -999.0)
+    bst = xgb.Booster();
+    bst.load_model(model_name)
+    pred = bst.predict(dtest)
+    pred = np.exp(pred)-1
+    submission = pd.DataFrame({'id':np.arange(len(preds)), 'Demanda_uni_equil': preds})
+    submission.to_csv('submit.csv', index=False)
