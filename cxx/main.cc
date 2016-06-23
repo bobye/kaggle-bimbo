@@ -121,11 +121,49 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 }
 
 
+
+void prepare_features(FILE *out, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
+  using namespace std;
+  {
+    float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+    auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
+    auto itr = last_group.find(key);
+    float logmean;
+    if (itr != last_group.end()) {
+      get_historical_data(itr->second, historical_data);
+    }
+    for (int i=0; i<6;++i)
+      fprintf(out, "%f ", historical_data[i]);
+    if (itr != last_group.end()) {
+      logmean=get_logmean(itr->second);
+    } else {
+      logmean=MISSING;
+    }
+    fprintf(out, "%f ", logmean);
+  }
+  {
+    fprintf(out, "%f %f ", log(get<0>(client_group[Cliente_ID])+1), log(get<1>(client_group[Cliente_ID])+1));      
+    auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
+    float estimate;
+    if (regress != product_group_coeff.end()) {
+      estimate = get<0>(regress->second)
+	+ get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
+	+ get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
+      if (estimate <= 0 || estimate > 15)
+	estimate = MISSING;
+    } else {
+      estimate = MISSING;
+    }
+    fprintf(out, "%f ", estimate);
+  }
+}
+
+
 int main() {
   using namespace std;
 
   /* use validation */
-  bool use_valid = true;
+  bool use_valid = false;
 
 
   /* basic line reader utility */
@@ -356,40 +394,8 @@ int main() {
       }
       fprintf(valid_file, "%d\t%d\t%d\t%.2f\t%.2f\n", Cliente_ID, Producto_ID, Demanda_uni_equil, exp(logmean)-1,exp(estimate)-1);
       */
-
-      {
-	float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
-	auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
-	auto itr = last_group.find(key);
-	float logmean;
-	if (itr != last_group.end()) {
-	  get_historical_data(itr->second, historical_data);
-	}
-	for (int i=0; i<6;++i)
-	  fprintf(valid_file, "%f ", historical_data[i]);
-	if (itr != last_group.end()) {
-	  logmean=get_logmean(itr->second);
-	} else {
-	  logmean=MISSING;
-	}
-	fprintf(valid_file, "%f ", logmean);
-      }
-      {
-	fprintf(valid_file, "%f %f ", log(get<0>(client_group[Cliente_ID])+1), log(get<1>(client_group[Cliente_ID])+1));      
-	auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
-	float estimate;
-	if (regress != product_group_coeff.end()) {
-	  estimate = get<0>(regress->second)
-	    + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
-	    + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
-	  if (estimate <= 0 || estimate > 15)
-	    estimate = MISSING;
-	} else {
-	  estimate = MISSING;
-	}
-	fprintf(valid_file, "%f ", estimate);
-      }
-
+      
+      prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
       fprintf(valid_file, "%d\n", Demanda_uni_equil);
 
     }
@@ -409,7 +415,7 @@ int main() {
   /* write submit files */
   FILE *test_file, *submit_file;
   test_file = fopen("../test.csv", "r");
-  submit_file = fopen("submit.csv", "w");
+  submit_file = fopen("test_feature.csv", "w");
 
   if (test_file == NULL || submit_file == NULL)
     exit(EXIT_FAILURE);
@@ -417,11 +423,11 @@ int main() {
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
-  fprintf(submit_file, "id,Demanda_uni_equil\n");
+  //  fprintf(submit_file, "id,Demanda_uni_equil\n");
   while ((read = getline(&line, &len, test_file)) != -1 && count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d", &id,&Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID);
-
+    /*
     auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
     auto itr = last_group.find(key);
     float logmean=0;
@@ -441,7 +447,11 @@ int main() {
       }
       fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);    
     }
+    */
 
+    prepare_features(submit_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+    fprintf(valid_file, "\n");
+    
     if (count % 10000 == 0 || count == max_count) {
       prt_progress_bar((float) count / (float) max_count);
     } 
