@@ -5,7 +5,7 @@
 #include <tuple>
 #include <vector>
 #include <numeric>
-
+#include <algorithm>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
@@ -14,6 +14,18 @@
 #include <assert.h>
 #include "auxilary.hh"
 
+#define MISSING (-999)
+
+
+/* basic data structure */
+std::unordered_map<std::tuple<int, int, int, char>, size_t> last_group;
+std::unordered_map<int, std::tuple<float, float, char> > client_group;
+std::unordered_map<std::tuple<int, int>, size_t> product_group;
+std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
+size_t *next_id, *next_id_prod;
+short int* demands; 
+char* months; 
+int* client_ids;
 
 inline void prt_progress_bar(float progress) {
   using namespace std;
@@ -29,7 +41,28 @@ inline void prt_progress_bar(float progress) {
   cout.flush();
 }
 
-inline float get_logmean(size_t jj, short int *demands, size_t * next_id) {
+
+inline void get_historical_data(size_t jj, float *historical_data) {
+  int n=0, count_month=0, month=-1;
+  historical_data[0]=0;
+  while (jj != 0 && n <6) {
+    if (months[jj] != month && month!=-1) {
+      historical_data[n]/=count_month; 
+      n++; if (n>=6) break;
+      count_month=0;
+      historical_data[n] = 0;
+    }; 
+    month = months[jj];
+    count_month++;
+    historical_data[n] += log(demands[jj]+1);
+    jj=next_id[jj];    
+  }
+  for (; jj!=0&&n<6; ++n) {
+    historical_data[n] = MISSING;
+  }
+}
+
+inline float get_logmean(size_t jj) {
   float logmean=0;
   int n_logmean=0;
   while (jj != 0) {
@@ -39,6 +72,22 @@ inline float get_logmean(size_t jj, short int *demands, size_t * next_id) {
   }
   logmean /= n_logmean;
   return logmean;
+}
+
+inline float get_median(size_t jj) {
+  using namespace std;
+  vector<short int> cache;
+  while (jj != 0) {
+    cache.push_back(demands[jj]);
+    jj=next_id[jj];
+  }
+  sort(cache.begin(), cache.end());
+  int n=cache.size();
+  if (n % 2 == 0) {
+    return (cache[n/2] + cache[n/2-1])/2.0;
+  } else {
+    return cache[n/2];
+  }
 }
 
 void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
@@ -84,15 +133,6 @@ int main() {
   size_t len = 0;
   ssize_t read;
   
-  /* basic data structure */
-  unordered_map<tuple<int, int, int, char>, size_t> last_group;
-  unordered_map<int, tuple<float, float, char> > client_group;
-  unordered_map<tuple<int, int>, size_t> product_group;
-  unordered_map<tuple<int, int>, tuple<float, float, float> > product_group_coeff;
-  size_t *next_id, *next_id_prod;
-  short int* demands; 
-  char* months; 
-  int* client_ids;
   size_t count, t_count, max_count=74180465, num_of_products=2592;
   next_id = (size_t*) calloc(max_count, sizeof(size_t));
   next_id_prod = (size_t*) calloc(max_count, sizeof(size_t));
@@ -279,6 +319,8 @@ int main() {
   /* re-scan for validation */
   float err_part0 = 0, err_part1 = 0, err_part2 = 0, valid_count=0;
   cout << "File Scan Resume:\n";
+  FILE * valid_file;
+  valid_file = fopen("valid.csv", "w");
   do {
     int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
     float Venta_hoy,Dev_proxima;
@@ -286,21 +328,23 @@ int main() {
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
 
     if (Semana == 9 && use_valid) {
+      /*
       auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
       auto itr = last_group.find(key);
       float logmean=0, err;
+      float estimate = log(3.92+1);
       if (itr != last_group.end()) {      
-	logmean = get_logmean(itr->second, demands, next_id);
-	err=(log(Demanda_uni_equil+1) - logmean); err=err*err;
+	logmean = get_logmean(itr->second);
+	//logmean = log(get_median(itr->second, demands, next_id)+1);
+	err=log(Demanda_uni_equil+1) - logmean; err=err*err;
 	err_part0 += err;
 	valid_count ++;
       } else {
 	auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
-	float estimate = log(3.92+1);
 	if (regress != product_group_coeff.end()) {
 	  estimate = get<0>(regress->second)
 	    + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
-	    + get<2>(regress->second) * log(get<0>(client_group[Cliente_ID])+1);
+	    + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
 	  if (estimate <= 0 || estimate > 15)
 	    estimate = log(3.92+1);
 	} else {
@@ -310,18 +354,56 @@ int main() {
 	else err_part1 += err;
 	valid_count ++;
       }
-      
+      fprintf(valid_file, "%d\t%d\t%d\t%.2f\t%.2f\n", Cliente_ID, Producto_ID, Demanda_uni_equil, exp(logmean)-1,exp(estimate)-1);
+      */
+
+      {
+	float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+	auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
+	auto itr = last_group.find(key);
+	float logmean;
+	if (itr != last_group.end()) {
+	  get_historical_data(itr->second, historical_data);
+	}
+	for (int i=0; i<6;++i)
+	  fprintf(valid_file, "%f ", historical_data[i]);
+	if (itr != last_group.end()) {
+	  logmean=get_logmean(itr->second);
+	} else {
+	  logmean=MISSING;
+	}
+	fprintf(valid_file, "%f ", logmean);
+      }
+      {
+	fprintf(valid_file, "%f %f ", log(get<0>(client_group[Cliente_ID])+1), log(get<1>(client_group[Cliente_ID])+1));      
+	auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
+	float estimate;
+	if (regress != product_group_coeff.end()) {
+	  estimate = get<0>(regress->second)
+	    + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
+	    + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
+	  if (estimate <= 0 || estimate > 15)
+	    estimate = MISSING;
+	} else {
+	  estimate = MISSING;
+	}
+	fprintf(valid_file, "%f ", estimate);
+      }
+
+      fprintf(valid_file, "%d\n", Demanda_uni_equil);
+
     }
+
     if (t_count%10000==0 || t_count == max_count) {
       prt_progress_bar((float) t_count / (float) max_count);
     }
     t_count ++;
   }
   while ((read = getline(&line, &len, train_file)) != -1 && t_count < max_count);
-  fclose(train_file);
+  fclose(train_file); fclose(valid_file);
   printf("\n");
   printf("Part0:%f\tPart1:%f\tPart2:%f\tValidation Score:%f\n", err_part0, err_part1, err_part2,
-	 sqrt((err_part0+err_part1+err_part2) / valid_count));
+  	 sqrt((err_part0+err_part1+err_part2) / valid_count));
 
   if (!use_valid) {
   /* write submit files */
@@ -339,11 +421,12 @@ int main() {
   while ((read = getline(&line, &len, test_file)) != -1 && count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d", &id,&Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID);
+
     auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
     auto itr = last_group.find(key);
     float logmean=0;
     if (itr != last_group.end()) {      
-      logmean = get_logmean(itr->second, demands, next_id);
+      logmean = get_logmean(itr->second);
       fprintf(submit_file, "%d,%.2f\n", id, exp(logmean)-1);    
     } else {
       auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
@@ -351,13 +434,14 @@ int main() {
       if (regress != product_group_coeff.end()) {
 	estimate = get<0>(regress->second)
 	  + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
-	  + get<2>(regress->second) * log(get<0>(client_group[Cliente_ID])+1);
+	  + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
 	if (estimate <= 0 || estimate > 15)
 	  estimate = log(3.92+1);
       } else {
       }
       fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);    
     }
+
     if (count % 10000 == 0 || count == max_count) {
       prt_progress_bar((float) count / (float) max_count);
     } 
