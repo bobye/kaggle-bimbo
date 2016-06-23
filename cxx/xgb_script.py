@@ -11,7 +11,7 @@ print 'done; prepare training'
 dtrain = xgb.DMatrix(data, label=np.log(label+1), missing = -999.0)
 
 print 'done; start cv'
-param = {'max_depth':2, 'eta':0.05, 'silent':1, 'objective':'reg:linear'}
+param = {'max_depth':2, 'eta':0.9, 'silent':1, 'objective':'reg:linear'}
 
 res = xgb.cv(param, dtrain, num_boost_round=100, nfold=5,
              metrics={'rmse'}, seed = 0,
