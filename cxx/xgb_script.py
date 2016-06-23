@@ -2,13 +2,14 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='cv' # {'train','cv','predict'}
+task='train' # {'train','cv','predict'}
 param = {'max_depth':2, 'eta':0.8, 'silent':1, 'objective':'reg:linear'}
 model_name='0001.model'
 
 if task == 'train' or task == 'cv':
     print 'start to load training data ... '
     valid_data = np.loadtxt("valid.csv")
+#    valid_data = valid_data[np.random.randint(valid_data.shape[0], size=100000),:]
     data=valid_data[:,0:(valid_data.shape[1]-1)]
     label=valid_data[:,valid_data.shape[1]-1]
     del valid_data
@@ -27,8 +28,7 @@ if task == 'cv':
 
 if task == 'train':
     num_round = 200;
-    bst = xgb.train(param, dtrain, num_boost_round=num_round
-                    [(dtrain,'train')], verbose_eval=True);
+    bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
 
     bst.save_model(model_name);
 
