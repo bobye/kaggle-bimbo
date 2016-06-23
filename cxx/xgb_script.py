@@ -9,7 +9,7 @@ model_name='0001.model'
 if task == 'train' or task == 'cv':
     print 'start to load training data ... '
     valid_data = np.loadtxt("valid.csv")
-#    valid_data = valid_data[np.random.randint(valid_data.shape[0], size=100000),:]
+#    valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)]
     data=valid_data[:,0:(valid_data.shape[1]-1)]
     label=valid_data[:,valid_data.shape[1]-1]
     del valid_data

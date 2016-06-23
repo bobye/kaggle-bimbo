@@ -365,39 +365,9 @@ int main() {
 
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
 
-    if (Semana == 9 && use_valid) {
-      /*
-      auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
-      auto itr = last_group.find(key);
-      float logmean=0, err;
-      float estimate = log(3.92+1);
-      if (itr != last_group.end()) {      
-	logmean = get_logmean(itr->second);
-	//logmean = log(get_median(itr->second, demands, next_id)+1);
-	err=log(Demanda_uni_equil+1) - logmean; err=err*err;
-	err_part0 += err;
-	valid_count ++;
-      } else {
-	auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
-	if (regress != product_group_coeff.end()) {
-	  estimate = get<0>(regress->second)
-	    + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
-	    + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
-	  if (estimate <= 0 || estimate > 15)
-	    estimate = log(3.92+1);
-	} else {
-	}
-	err=(log(Demanda_uni_equil+1) - estimate); err=err*err;
-	if (fabs(estimate - log(3.92+1)) < 0.001) err_part2 += err;
-	else err_part1 += err;
-	valid_count ++;
-      }
-      fprintf(valid_file, "%d\t%d\t%d\t%.2f\t%.2f\n", Cliente_ID, Producto_ID, Demanda_uni_equil, exp(logmean)-1,exp(estimate)-1);
-      */
-      
+    if (Semana == 9 && use_valid) {      
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
       fprintf(valid_file, "%d\n", Demanda_uni_equil);
-
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -427,28 +397,6 @@ int main() {
   while ((read = getline(&line, &len, test_file)) != -1 && count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     sscanf(line, "%d,%d,%d,%d,%d,%d,%d", &id,&Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID);
-    /*
-    auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
-    auto itr = last_group.find(key);
-    float logmean=0;
-    if (itr != last_group.end()) {      
-      logmean = get_logmean(itr->second);
-      fprintf(submit_file, "%d,%.2f\n", id, exp(logmean)-1);    
-    } else {
-      auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
-      float estimate = log(3.92+1);
-      if (regress != product_group_coeff.end()) {
-	estimate = get<0>(regress->second)
-	  + get<1>(regress->second) * log(get<0>(client_group[Cliente_ID])+1)
-	  + get<2>(regress->second) * log(get<1>(client_group[Cliente_ID])+1);
-	if (estimate <= 0 || estimate > 15)
-	  estimate = log(3.92+1);
-      } else {
-      }
-      fprintf(submit_file, "%d,%.2f\n", id, exp(estimate)-1);    
-    }
-    */
-
     prepare_features(submit_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     fprintf(valid_file, "\n");
     
