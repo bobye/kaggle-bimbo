@@ -2,7 +2,7 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='train' # {'train','cv','predict'}
+task='cv' # {'train','cv','predict'}
 param = {'max_depth':2, 'eta':0.8, 'silent':1, 'objective':'reg:linear'}
 model_name='0001.model'
 
@@ -26,7 +26,7 @@ if task == 'cv':
                             xgb.callback.early_stop(3)])
 
 if task == 'train':
-    num_round = 100;
+    num_round = 200;
     bst = xgb.train(param, dtrain, num_boost_round=num_round
                     [(dtrain,'train')], verbose_eval=True);
 
@@ -38,6 +38,7 @@ if task == 'predict':
     bst = xgb.Booster();
     bst.load_model(model_name)
     pred = bst.predict(dtest)
+    pred[pred<0] = 0 # set positive
     pred = np.exp(pred)-1
-    submission = pd.DataFrame({'id':np.arange(len(preds)), 'Demanda_uni_equil': preds})
+    submission = pd.DataFrame({'id':np.arange(len(pred)), 'Demanda_uni_equil': pred})
     submission.to_csv('submit.csv', index=False)
