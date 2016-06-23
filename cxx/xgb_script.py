@@ -2,8 +2,8 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='train' # {'train','cv','predict'}
-param = {'max_depth':2, 'eta':0.8, 'silent':1, 'objective':'reg:linear'}
+task='cv' # {'train','cv','predict'}
+param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto'}
 model_name='0001.model'
 
 if task == 'train' or task == 'cv':
