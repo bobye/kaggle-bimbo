@@ -24,6 +24,7 @@ std::unordered_map<int, std::tuple<float, float, char> > client_group;
 std::unordered_map<std::tuple<int, int>, size_t> product_group;
 std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
 std::unordered_map<int, float> p_weight;
+std::unordered_map<int, float> p_popularity;
 size_t *next_id, *next_id_prod;
 short int* demands; 
 char* months; 
@@ -172,9 +173,13 @@ void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int A
   }
 
   {
-    float w=MISSING;
-    if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID];
+    float w;
+    if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID]; 
+    else w=MISSING;
     out.write((char*)&w, sizeof(float));
+    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=p_popularity[Producto_ID]; 
+    else w=MISSING;
+    out.write((char*)&w, sizeof(float));    
   }
 }
 
@@ -259,6 +264,17 @@ int main(int argc, char* argv[]) {
 	  get<0>(itr->second) += Venta_hoy;
 	  get<1>(itr->second) += Dev_proxima;
 	  get<2>(itr->second) |= 0x01 << (Semana - 3);
+	}
+      }
+    }
+
+    {
+      auto itr = p_popularity.find(Producto_ID);
+      if (use_valid || Semana > 3) {
+	if (itr == p_popularity.end()) {
+	  p_popularity[Producto_ID] = Demanda_uni_equil;
+	} else {
+	  p_popularity[Producto_ID] += Demanda_uni_equil;
 	}
       }
     }
