@@ -2,30 +2,31 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='cv' # {'train','cv','predict'}
-#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact'}
-param = {'max_depth':4, 'eta':0.8, 'silent':1, 'tree_method':'exact'}
+task='predict' # {'train','cv','predict'}
+param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto'}
 model_name='0002.model'
 
 
-def myobj(preds, dtrain):
-    labels = dtrain.get_label()
-    preds = np.maximum(preds, 0)
-    grad = (preds - labels)
-    hess = np.ones(preds.shape)
-    hess[preds == 0] = 0
-    return grad, hess
+# def myobj(preds, dtrain):
+#     labels = dtrain.get_label()
+#     preds = np.maximum(preds, 0)
+#     grad = (preds - labels)
+#     hess = np.ones(preds.shape)
+#     hess[preds == 0] = 0
+#     return grad, hess
 
-def myerror(preds, dtrain):
-    labels = dtrain.get_label()
-    preds = np.maximum(preds, 0)
-    return 'error', np.sqrt(((preds - labels) ** 2).mean())
+# def myerror(preds, dtrain):
+#     labels = dtrain.get_label()
+#     preds = np.maximum(preds, 0)
+#     return 'error', np.sqrt(((preds - labels) ** 2).mean())
 
 
 if task == 'train' or task == 'cv':
     print 'start to load training data ... '
-    valid_data = np.loadtxt("valid.csv")
-#    valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)]
+    valid_data = np.fromfile("valid.bin", dtype=np.float32)
+    valid_data = np.reshape(valid_data, (10408713, len(valid_data)/10408713))
+    ## down-sample data for local run
+    # valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)] 
     data=valid_data[:,0:(valid_data.shape[1]-1)]
     label=valid_data[:,valid_data.shape[1]-1]
     del valid_data
@@ -36,9 +37,7 @@ if task == 'train' or task == 'cv':
 
 if task == 'cv':
     print 'start cv'
-
     res = xgb.cv(param, dtrain, num_boost_round=200, nfold=5,
-                 obj=myobj, feval=myerror,
                  seed = 0,
                  callbacks=[xgb.callback.print_evaluation(show_stdv=False),
                             xgb.callback.early_stop(3)])
@@ -50,7 +49,8 @@ if task == 'train':
     bst.save_model(model_name);
 
 if task == 'predict':
-    test_data = np.loadtxt("test_feature.csv");    
+    test_data = np.fromfile("test_feature.bin", dtype=np.float32);    
+    test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
     dtest = xgb.DMatrix(test_data, missing = -999.0)
     bst = xgb.Booster();
     bst.load_model(model_name)

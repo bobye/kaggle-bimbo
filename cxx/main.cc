@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fstream>
 #include <iostream>
 #include <unordered_map>
 #include <tuple>
@@ -122,7 +123,7 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 
 
 
-void prepare_features(FILE *out, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
+void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
   using namespace std;
   {
     float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
@@ -132,17 +133,17 @@ void prepare_features(FILE *out, int Cliente_ID, int Producto_ID, int Agencia_ID
     if (itr != last_group.end()) {
       get_historical_data(itr->second, historical_data);
     }
-    for (int i=0; i<6;++i)
-      fprintf(out, "%f ", historical_data[i]);
+    out.write((char*)historical_data, sizeof(historical_data));
     if (itr != last_group.end()) {
       logmean=get_logmean(itr->second);
     } else {
       logmean=MISSING;
     }
-    fprintf(out, "%f ", logmean);
+    out.write((char*) &logmean, sizeof(float));
   }
   {
-    fprintf(out, "%f %f ", log(get<0>(client_group[Cliente_ID])+1), log(get<1>(client_group[Cliente_ID])+1));      
+    float c[2] ={log(get<0>(client_group[Cliente_ID])+1), log(get<1>(client_group[Cliente_ID])+1)};
+    out.write((char*)c, sizeof(c));
     auto regress=product_group_coeff.find(make_tuple(Producto_ID, Agencia_ID));
     float estimate;
     if (regress != product_group_coeff.end()) {
@@ -154,16 +155,19 @@ void prepare_features(FILE *out, int Cliente_ID, int Producto_ID, int Agencia_ID
     } else {
       estimate = MISSING;
     }
-    fprintf(out, "%f ", estimate);
+    out.write((char*)&estimate, sizeof(float));
   }
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
   using namespace std;
 
   /* use validation */
-  bool use_valid = false;
+  bool use_valid;
+  if (argv[1][0] == 'v')  use_valid = true;
+  else if (argv[1][0] == 't')  use_valid = false;
+  else assert(false);
 
 
   /* basic line reader utility */
@@ -178,20 +182,27 @@ int main() {
   months  = (char*)    malloc(max_count * sizeof(char));
   client_ids = (int*) malloc(max_count * sizeof(int));
 
+  int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
+  float Venta_hoy,Dev_proxima;
+
   /* scanning training file */
-  FILE *train_file;
-  train_file=fopen("../train.csv", "r");
-  if (train_file == NULL)
-    exit(EXIT_FAILURE);
+  ifstream train_file_bin; train_file_bin.open("train.bin", ios::binary);
   cout << "File Scan:\n";
-  read = getline(&line, &len, train_file);   // skip the first line
   t_count = 1;
-  while ((read = getline(&line, &len, train_file)) != -1 && t_count < max_count) {
-    int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
-    float Venta_hoy,Dev_proxima;
-
-    sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
-
+  while (t_count < max_count) {
+    train_file_bin.read( (char*) &Semana, sizeof(int) );
+    train_file_bin.read( (char*) &Agencia_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Canal_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Ruta_SAK, sizeof(int) );
+    train_file_bin.read( (char*) &Cliente_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Producto_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Venta_uni_hoy, sizeof(int) );
+    train_file_bin.read( (char*) &Venta_hoy, sizeof(float) );
+    train_file_bin.read( (char*) &Dev_uni_proxima, sizeof(int) );
+    train_file_bin.read( (char*) &Dev_proxima, sizeof(float) );
+    train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
+    
+    
     if (Semana == 9 && use_valid) break;
 
     months[t_count]= Semana;
@@ -234,12 +245,11 @@ int main() {
     }
 
     
-    if (t_count%10000==0 || t_count == max_count) {
-      prt_progress_bar((float) t_count / (float) max_count);
+    if (t_count%10000==0 || t_count == max_count-1) {
+      prt_progress_bar((float) t_count / (float) (max_count-1));
     }
     t_count ++;
   }  
-  //  fclose(train_file);
   printf("\n");
 
   /* load product weights */
@@ -259,27 +269,6 @@ int main() {
 
   FILE *aggregate_file;
   size_t size_of_group;
-  /* write aggregate data for regression */
-  /*
-  aggregate_file = fopen("group.csv", "w");
-  count = 1;
-  size_of_group = last_group.size();
-  cout << "Write Logmean:\n";
-  for (auto itr = last_group.begin(); itr != last_group.end(); ++itr) {
-    fprintf(aggregate_file, "%d,%d,%d,%d,", get<0>(itr->first),get<1>(itr->first),get<2>(itr->first),(int) get<3>(itr->first));
-    size_t jj = itr->second;
-    float logmean;
-    logmean = get_logmean(jj, demands, next_id);
-    fprintf(aggregate_file, "%.2f\n", exp(logmean)-1);
-
-    if (count % 10000 == 0 || count == size_of_group) {
-      prt_progress_bar((float) count / (float) size_of_group);
-    } 
-    count++;
-  }
-  fclose(aggregate_file);
-  printf("\n");
-  */
 
   /* write aggregate data for client */
   aggregate_file = fopen("client.csv", "w");
@@ -355,19 +344,33 @@ int main() {
 
 
   /* re-scan for validation */
-  float err_part0 = 0, err_part1 = 0, err_part2 = 0, valid_count=0;
+  if (use_valid) {
   cout << "File Scan Resume:\n";
-  FILE * valid_file;
-  valid_file = fopen("valid.csv", "w");
+  ofstream valid_file;
+  valid_file.open("valid.bin", ios::out | ios::binary);
+  bool first_line_valid=true;
   do {
-    int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
-    float Venta_hoy,Dev_proxima;
-
-    sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
-
+    //sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
+    if (first_line_valid) {
+    first_line_valid=false;
+    }
+    else{
+    train_file_bin.read( (char*) &Semana, sizeof(int) );
+    train_file_bin.read( (char*) &Agencia_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Canal_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Ruta_SAK, sizeof(int) );
+    train_file_bin.read( (char*) &Cliente_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Producto_ID, sizeof(int) );
+    train_file_bin.read( (char*) &Venta_uni_hoy, sizeof(int) );
+    train_file_bin.read( (char*) &Venta_hoy, sizeof(float) );
+    train_file_bin.read( (char*) &Dev_uni_proxima, sizeof(int) );
+    train_file_bin.read( (char*) &Dev_proxima, sizeof(float) );
+    train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
+    }
     if (Semana == 9 && use_valid) {      
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
-      fprintf(valid_file, "%d\n", Demanda_uni_equil);
+      float tmp = Demanda_uni_equil;
+      valid_file.write((char*) &tmp, sizeof(float));
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -375,38 +378,39 @@ int main() {
     }
     t_count ++;
   }
-  while ((read = getline(&line, &len, train_file)) != -1 && t_count < max_count);
-  fclose(train_file); fclose(valid_file);
+  while (t_count < max_count);
+  valid_file.close();
   printf("\n");
-  printf("Part0:%f\tPart1:%f\tPart2:%f\tValidation Score:%f\n", err_part0, err_part1, err_part2,
-  	 sqrt((err_part0+err_part1+err_part2) / valid_count));
+  }
+  train_file_bin.close();
 
   if (!use_valid) {
   /* write submit files */
-  FILE *test_file, *submit_file;
-  test_file = fopen("../test.csv", "r");
-  submit_file = fopen("test_feature.csv", "w");
-
-  if (test_file == NULL || submit_file == NULL)
-    exit(EXIT_FAILURE);
-  read = getline(&line, &len, train_file);
+  ofstream submit_file;
+  submit_file.open("test_feature.bin", ios::out | ios::binary);
+  ifstream test_file_bin; test_file_bin.open("test.bin", ios::binary);
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
-  //  fprintf(submit_file, "id,Demanda_uni_equil\n");
-  while ((read = getline(&line, &len, test_file)) != -1 && count < max_count) {
+  while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
-    sscanf(line, "%d,%d,%d,%d,%d,%d,%d", &id,&Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID);
+    test_file_bin.read((char*) &id, sizeof(int));
+    test_file_bin.read((char*) &Semana, sizeof(int));
+    test_file_bin.read((char*) &Agencia_ID, sizeof(int));
+    test_file_bin.read((char*) &Canal_ID, sizeof(int));
+    test_file_bin.read((char*) &Ruta_SAK, sizeof(int));
+    test_file_bin.read((char*) &Cliente_ID, sizeof(int));
+    test_file_bin.read((char*) &Producto_ID, sizeof(int));
+
     prepare_features(submit_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
-    fprintf(valid_file, "\n");
     
-    if (count % 10000 == 0 || count == max_count) {
-      prt_progress_bar((float) count / (float) max_count);
+    if (count % 10000 == 0 || count == max_count-1) {
+      prt_progress_bar((float) count / (float) (max_count-1));
     } 
     count++;
   }  
-  fclose(test_file);
-  fclose(submit_file);
+  submit_file.close();
+  test_file_bin.close();
   printf("\n");
   }
 
