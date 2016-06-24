@@ -24,7 +24,7 @@ std::unordered_map<int, std::tuple<float, float, char> > client_group;
 std::unordered_map<std::tuple<int, int>, size_t> product_group;
 std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
 std::unordered_map<int, float> p_weight;
-std::unordered_map<int, std::tuple<float, char> > p_popularity;
+std::unordered_map<int, float> p_popularity;
 size_t *next_id, *next_id_prod;
 short int* demands; 
 char* months; 
@@ -105,17 +105,6 @@ inline float get_median(size_t jj) {
   }
 }
 
-inline float get_onebits(unsigned char value) {
-  float denominator = 0;
-  while(value > 0) {
-    if ( (value & 1) == 1 ) 
-      denominator++;
-    value >>= 1;
-  }
-  assert(denominator>0 && denominator<=7);   
-  return denominator;
-}
-
 void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
   double xi, yi, ei, chisq;
   gsl_matrix *X, *cov;
@@ -188,7 +177,7 @@ void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int A
     if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID]; 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));
-    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=get<0>(p_popularity[Producto_ID]); 
+    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=p_popularity[Producto_ID]; 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));    
   }
@@ -281,11 +270,12 @@ int main(int argc, char* argv[]) {
 
     {
       auto itr = p_popularity.find(Producto_ID);
-      if (itr == p_popularity.end()) {
-	p_popularity[Producto_ID] = make_tuple(Demanda_uni_equil, 0x01 << (Semana - 3));
-      } else {
-	get<0>(itr->second) += Demanda_uni_equil;
-	get<1>(itr->second) |= 0x01 << (Semana - 3);
+      if (use_valid || Semana > 3) {
+	if (itr == p_popularity.end()) {
+	  p_popularity[Producto_ID] = Demanda_uni_equil;
+	} else {
+	  p_popularity[Producto_ID] += Demanda_uni_equil;
+	}
       }
     }
 
@@ -320,7 +310,15 @@ int main(int argc, char* argv[]) {
   size_of_group = client_group.size();
   cout << "Write Client:\n";
   for (auto itr = client_group.begin(); itr != client_group.end(); ++itr) {
-    float denominator = get_onebits(get<2>(itr->second));
+    unsigned char value=get<2>(itr->second);
+    int denominator = 0;
+    while(value > 0) {
+      if ( (value & 1) == 1 ) 
+	denominator++;
+      value >>= 1;
+    }
+    assert(denominator>0 && denominator<=7);   
+
     get<0>(itr->second)/=denominator;
     get<1>(itr->second)/=denominator;
 
@@ -333,11 +331,6 @@ int main(int argc, char* argv[]) {
   fclose(aggregate_file);
   printf("\n");
 
-  /* process product popularity */
-  for (auto itr = p_popularity.begin(); itr != p_popularity.end(); ++itr) {
-    float denominator = get_onebits(get<1>(itr->second));
-    get<0>(itr->second)= log(get<0>(itr->second) / denominator + 1);
-  }
 
   /* write regression missing data */
   aggregate_file = fopen("regression_data.csv", "w");
