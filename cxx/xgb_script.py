@@ -2,9 +2,25 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='predict' # {'train','cv','predict'}
-param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact'}
-model_name='0001.model'
+task='cv' # {'train','cv','predict'}
+#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact'}
+param = {'max_depth':4, 'eta':0.8, 'silent':1, 'tree_method':'exact'}
+model_name='0002.model'
+
+
+def myobj(preds, dtrain):
+    labels = dtrain.get_label()
+    preds = np.maximum(preds, 0)
+    grad = (preds - labels)
+    hess = np.ones(preds.shape)
+    hess[preds == 0] = 0
+    return grad, hess
+
+def myerror(preds, dtrain):
+    labels = dtrain.get_label()
+    preds = np.maximum(preds, 0)
+    return 'error', np.sqrt(((preds - labels) ** 2).mean())
+
 
 if task == 'train' or task == 'cv':
     print 'start to load training data ... '
@@ -22,7 +38,8 @@ if task == 'cv':
     print 'start cv'
 
     res = xgb.cv(param, dtrain, num_boost_round=200, nfold=5,
-                 metrics={'rmse'}, seed = 0,
+                 obj=myobj, feval=myerror,
+                 seed = 0,
                  callbacks=[xgb.callback.print_evaluation(show_stdv=False),
                             xgb.callback.early_stop(3)])
 
