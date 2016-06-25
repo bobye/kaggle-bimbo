@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
   cout << "File Scan Resume:\n";
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; ffm_te.open("ffm_te.txt");
-  ofstream ffm_te2; ffm_te.open("ffm_te2.txt");
+  ofstream ffm_te2; ffm_te2.open("ffm_te2.txt");
   bool first_line_valid=true;
   do {
     //sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
