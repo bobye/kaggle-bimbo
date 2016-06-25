@@ -25,6 +25,7 @@ std::unordered_map<std::tuple<int, int>, size_t> product_group;
 std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
 std::unordered_map<int, float> p_weight;
 std::unordered_map<int, float> p_popularity;
+std::unordered_map<std::tuple<char, int>, size_t> feat_index;
 size_t *next_id, *next_id_prod;
 short int* demands; 
 char* months; 
@@ -183,12 +184,32 @@ void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int A
   }
 }
 
+void write_ffm_data(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, size_t &feat_count) {
+  using namespace std;
+  auto key = make_tuple(1, Cliente_ID);
+  if (feat_index.find(key) == feat_index.end()) {
+    feat_index[key] = ++feat_count;
+  } 
+  ffm << "1:" << feat_index[key] << ":1\t";
+  key = make_tuple(2, Producto_ID);
+  if (feat_index.find(key) == feat_index.end()) {
+    feat_index[key] = ++feat_count;
+  }
+  ffm << "2:" << feat_index[key] << ":1\t";
+  key = make_tuple(3, Agencia_ID*100 + Canal_ID);
+  if (feat_index.find(key) == feat_index.end()) {
+    feat_index[key] = ++feat_count;
+  }
+  ffm << "3:" << feat_index[key] << ":1\n";      
+}
+
 
 int main(int argc, char* argv[]) {
   using namespace std;
 
   /* use validation */
   bool use_valid;
+  assert(argc == 2);
   if (argv[1][0] == 'v')  use_valid = true;
   else if (argv[1][0] == 't')  use_valid = false;
   else assert(false);
@@ -211,8 +232,10 @@ int main(int argc, char* argv[]) {
 
   /* scanning training file */
   ifstream train_file_bin; train_file_bin.open("train.bin", ios::binary);
+  ofstream ffm_tr; ffm_tr.open("ffm_tr.txt");
   cout << "File Scan:\n";
-  t_count = 1;
+  t_count = 1; 
+  size_t feat_count = 0;
   while (t_count < max_count) {
     train_file_bin.read( (char*) &Semana, sizeof(int) );
     train_file_bin.read( (char*) &Agencia_ID, sizeof(int) );
@@ -279,14 +302,17 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    
+    {
+      ffm_tr << log(Demanda_uni_equil+1) << "\t";
+      write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, feat_count);
+    }
     if (t_count%10000==0 || t_count == max_count-1) {
       prt_progress_bar((float) t_count / (float) (max_count-1));
     }
     t_count ++;
   }  
   printf("\n");
-
+  ffm_tr.close();
   /* load product weights */
 
   FILE *product_file;
@@ -380,8 +406,8 @@ int main(int argc, char* argv[]) {
   /* re-scan for validation */
   if (use_valid) {
   cout << "File Scan Resume:\n";
-  ofstream valid_file;
-  valid_file.open("valid.bin", ios::out | ios::binary);
+  ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
+  ofstream ffm_te; ffm_te.open("ffm_te.txt");
   bool first_line_valid=true;
   do {
     //sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
@@ -405,6 +431,8 @@ int main(int argc, char* argv[]) {
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
       float tmp = Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
+      ffm_te << log(Demanda_uni_equil+1) << "\t";
+      write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, feat_count);
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -414,6 +442,7 @@ int main(int argc, char* argv[]) {
   }
   while (t_count < max_count);
   valid_file.close();
+  ffm_te.close();
   printf("\n");
   }
   train_file_bin.close();
