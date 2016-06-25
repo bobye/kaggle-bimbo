@@ -237,7 +237,7 @@ int main(int argc, char* argv[]) {
 
   /* scanning training file */
   ifstream train_file_bin; train_file_bin.open("train.bin", ios::binary);
-  ofstream ffm_tr; ffm_tr.open("ffm_tr.txt");
+  //  ofstream ffm_tr; ffm_tr.open("ffm_tr.txt");
   cout << "File Scan:\n";
   t_count = 1; 
   size_t feat_count = 0;
@@ -306,18 +306,19 @@ int main(int argc, char* argv[]) {
 	}
       }
     }
-
+    /*
     {
       ffm_tr << log(Demanda_uni_equil+1) << "\t";
       write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
     }
+    */
     if (t_count%10000==0 || t_count == max_count-1) {
       prt_progress_bar((float) t_count / (float) (max_count-1));
     }
     t_count ++;
   }  
   printf("\n");
-  ffm_tr.close();
+  //  ffm_tr.close();
   /* load product weights */
 
   FILE *product_file;
@@ -412,11 +413,11 @@ int main(int argc, char* argv[]) {
   if (use_valid) {
   cout << "File Scan Resume:\n";
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
-  ofstream ffm_te; ffm_te.open("ffm_te.txt");
-  ofstream ffm_te2; ffm_te2.open("ffm_te2.txt");
+  //  ofstream ffm_te; ffm_te.open("ffm_te.txt");
+  //  ofstream ffm_te2; ffm_te2.open("ffm_te2.txt");
+  ifstream ffm_te_pred; ffm_te_pred.open("ffm_te_pred.txt");
   bool first_line_valid=true;
   do {
-    //sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
     if (first_line_valid) {
     first_line_valid=false;
     }
@@ -434,9 +435,13 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     }
     if (Semana == 9 && use_valid) {      
+      float tmp;
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
-      float tmp = Demanda_uni_equil;
+      ffm_te_pred >> tmp;
       valid_file.write((char*) &tmp, sizeof(float));
+      tmp=Demanda_uni_equil;
+      valid_file.write((char*) &tmp, sizeof(float));
+      /*
       ffm_te << log(Demanda_uni_equil+1) << "\t";
       write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
       if (last_group.find(make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID))
@@ -444,6 +449,7 @@ int main(int argc, char* argv[]) {
 	ffm_te2 << log(Demanda_uni_equil+1) << "\t";
 	write_ffm_data(ffm_te2, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
       }
+      */
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -453,7 +459,8 @@ int main(int argc, char* argv[]) {
   }
   while (t_count < max_count);
   valid_file.close();
-  ffm_te.close();   ffm_te2.close();
+  //  ffm_te.close();   ffm_te2.close();
+  ffm_te_pred.close();
   printf("\n");
   }
   train_file_bin.close();
