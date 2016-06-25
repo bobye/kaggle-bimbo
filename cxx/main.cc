@@ -413,6 +413,7 @@ int main(int argc, char* argv[]) {
   cout << "File Scan Resume:\n";
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; ffm_te.open("ffm_te.txt");
+  ofstream ffm_te2; ffm_te.open("ffm_te2.txt");
   bool first_line_valid=true;
   do {
     //sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%f,%d,%f,%d", &Semana,&Agencia_ID,&Canal_ID,&Ruta_SAK,&Cliente_ID,&Producto_ID,&Venta_uni_hoy,&Venta_hoy,&Dev_uni_proxima,&Dev_proxima,&Demanda_uni_equil);
@@ -438,6 +439,11 @@ int main(int argc, char* argv[]) {
       valid_file.write((char*) &tmp, sizeof(float));
       ffm_te << log(Demanda_uni_equil+1) << "\t";
       write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+      if (last_group.find(make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID))
+	  == last_group.end()) {
+	ffm_te2 << log(Demanda_uni_equil+1) << "\t";
+	write_ffm_data(ffm_te2, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+      }
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -447,7 +453,7 @@ int main(int argc, char* argv[]) {
   }
   while (t_count < max_count);
   valid_file.close();
-  ffm_te.close();
+  ffm_te.close();   ffm_te2.close();
   printf("\n");
   }
   train_file_bin.close();
