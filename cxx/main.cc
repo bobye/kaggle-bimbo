@@ -184,7 +184,7 @@ void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int A
   }
 }
 
-void write_ffm_data(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, size_t &feat_count) {
+void write_ffm_data(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK, size_t &feat_count) {
   using namespace std;
   auto key = make_tuple(1, Cliente_ID);
   if (feat_index.find(key) == feat_index.end()) {
@@ -200,7 +200,12 @@ void write_ffm_data(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int Age
   if (feat_index.find(key) == feat_index.end()) {
     feat_index[key] = ++feat_count;
   }
-  ffm << "3:" << feat_index[key] << ":1\n";      
+  ffm << "3:" << feat_index[key] << ":1\t";      
+  key = make_tuple(4, Ruta_SAK);
+  if (feat_index.find(key) == feat_index.end()) {
+    feat_index[key] = ++feat_count;
+  }
+  ffm << "4:" << feat_index[key] << ":1\n";      
 }
 
 
@@ -304,7 +309,7 @@ int main(int argc, char* argv[]) {
 
     {
       ffm_tr << log(Demanda_uni_equil+1) << "\t";
-      write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, feat_count);
+      write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
     }
     if (t_count%10000==0 || t_count == max_count-1) {
       prt_progress_bar((float) t_count / (float) (max_count-1));
@@ -432,7 +437,7 @@ int main(int argc, char* argv[]) {
       float tmp = Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
       ffm_te << log(Demanda_uni_equil+1) << "\t";
-      write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, feat_count);
+      write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
     }
 
     if (t_count%10000==0 || t_count == max_count) {
