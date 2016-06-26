@@ -19,11 +19,22 @@
 
 
 /* basic data structure */
+// <Cliente_ID, Producto_ID, Agencia_ID, Canal_ID> => index
 std::unordered_map<std::tuple<int, int, int, char>, size_t> last_group;
+
+// Cliente_ID => <Venta_hoy, Dev_uni_proxima, Semana>
 std::unordered_map<int, std::tuple<float, float, char> > client_group;
+
+// <Producto_ID, Agencia_ID> => index
 std::unordered_map<std::tuple<int, int>, size_t> product_group;
+
+// <Producto_ID, Agencia_ID> => LinearRegression<w0,w1,w2>
 std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
+
+// <Producto_ID> => weight
 std::unordered_map<int, float> p_weight;
+
+// <Producto_ID> => count
 std::unordered_map<int, float> p_popularity;
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
 size_t *next_id, *next_id_prod;
@@ -188,24 +199,24 @@ void write_ffm_data(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int Age
   using namespace std;
   auto key = make_tuple(1, Cliente_ID);
   if (feat_index.find(key) == feat_index.end()) {
-    feat_index[key] = ++feat_count;
+    feat_index[key] = feat_count++;
   } 
-  ffm << "1:" << feat_index[key] << ":1\t";
+  ffm << "0:" << feat_index[key] << ":1\t";
   key = make_tuple(2, Producto_ID);
   if (feat_index.find(key) == feat_index.end()) {
-    feat_index[key] = ++feat_count;
+    feat_index[key] = feat_count++;
   }
-  ffm << "2:" << feat_index[key] << ":1\t";
+  ffm << "1:" << feat_index[key] << ":1\t";
   key = make_tuple(3, Agencia_ID*100 + Canal_ID);
   if (feat_index.find(key) == feat_index.end()) {
-    feat_index[key] = ++feat_count;
+    feat_index[key] = feat_count++;
   }
-  ffm << "3:" << feat_index[key] << ":1\t";      
+  ffm << "2:" << feat_index[key] << ":1\t";      
   key = make_tuple(4, Ruta_SAK);
   if (feat_index.find(key) == feat_index.end()) {
-    feat_index[key] = ++feat_count;
+    feat_index[key] = feat_count++;
   }
-  ffm << "4:" << feat_index[key] << ":1\n";      
+  ffm << "3:" << feat_index[key] << ":1\n";      
 }
 
 
@@ -213,12 +224,14 @@ int main(int argc, char* argv[]) {
   using namespace std;
 
   /* use validation */
-  bool use_valid;
+  bool use_valid, write_ffm;
   assert(argc == 2);
   if (argv[1][0] == 'v')  use_valid = true;
   else if (argv[1][0] == 't')  use_valid = false;
   else assert(false);
 
+  if (argv[1][1] == 'w') write_ffm = true;
+  else if (argv[1][1] == 'r') write_ffm = false;
 
   /* basic line reader utility */
   char *line = NULL; 
@@ -237,7 +250,7 @@ int main(int argc, char* argv[]) {
 
   /* scanning training file */
   ifstream train_file_bin; train_file_bin.open("train.bin", ios::binary);
-  //  ofstream ffm_tr; ffm_tr.open("ffm_tr.txt");
+  ofstream ffm_tr; if (write_ffm) ffm_tr.open("ffm_tr.txt");
   cout << "File Scan:\n";
   t_count = 1; 
   size_t feat_count = 0;
@@ -306,19 +319,21 @@ int main(int argc, char* argv[]) {
 	}
       }
     }
-    /*
+
     {
-      ffm_tr << log(Demanda_uni_equil+1) << "\t";
-      write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+      if (write_ffm) {
+	ffm_tr << log(Demanda_uni_equil+1) << "\t";
+	write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+      }
     }
-    */
+
     if (t_count%10000==0 || t_count == max_count-1) {
       prt_progress_bar((float) t_count / (float) (max_count-1));
     }
     t_count ++;
   }  
   printf("\n");
-  //  ffm_tr.close();
+  if (write_ffm) ffm_tr.close();
   /* load product weights */
 
   FILE *product_file;
@@ -413,9 +428,9 @@ int main(int argc, char* argv[]) {
   if (use_valid) {
   cout << "File Scan Resume:\n";
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
-  //  ofstream ffm_te; ffm_te.open("ffm_te.txt");
-  //  ofstream ffm_te2; ffm_te2.open("ffm_te2.txt");
-  ifstream ffm_te_pred; ffm_te_pred.open("ffm_te_pred.txt");
+  ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
+  ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
   bool first_line_valid=true;
   do {
     if (first_line_valid) {
@@ -437,19 +452,23 @@ int main(int argc, char* argv[]) {
     if (Semana == 9 && use_valid) {      
       float tmp;
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
-      ffm_te_pred >> tmp;
-      valid_file.write((char*) &tmp, sizeof(float));
+
+      if (!write_ffm) {
+	ffm_te_pred >> tmp;
+	valid_file.write((char*) &tmp, sizeof(float));
+      }
       tmp=Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
-      /*
-      ffm_te << log(Demanda_uni_equil+1) << "\t";
-      write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
-      if (last_group.find(make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID))
-	  == last_group.end()) {
-	ffm_te2 << log(Demanda_uni_equil+1) << "\t";
-	write_ffm_data(ffm_te2, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+
+      if (write_ffm) {
+	ffm_te << log(Demanda_uni_equil+1) << "\t";
+	write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+	if (last_group.find(make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID))
+	    == last_group.end()) {
+	  ffm_te2 << log(Demanda_uni_equil+1) << "\t";
+	  write_ffm_data(ffm_te2, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+	}
       }
-      */
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -459,8 +478,8 @@ int main(int argc, char* argv[]) {
   }
   while (t_count < max_count);
   valid_file.close();
-  //  ffm_te.close();   ffm_te2.close();
-  ffm_te_pred.close();
+  if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
+  if(!write_ffm) ffm_te_pred.close();
   printf("\n");
   }
   train_file_bin.close();
@@ -473,8 +492,11 @@ int main(int argc, char* argv[]) {
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
+  ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
   while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
+    float tmp;
     test_file_bin.read((char*) &id, sizeof(int));
     test_file_bin.read((char*) &Semana, sizeof(int));
     test_file_bin.read((char*) &Agencia_ID, sizeof(int));
@@ -484,7 +506,15 @@ int main(int argc, char* argv[]) {
     test_file_bin.read((char*) &Producto_ID, sizeof(int));
 
     prepare_features(submit_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
-    
+    if (!write_ffm) {
+      ffm_te_pred >> tmp;
+      submit_file.write((char*) &tmp, sizeof(float));
+    }
+    if (write_ffm) {
+      ffm_te << 0 << "\t"; // write dummy label
+      write_ffm_data(ffm_te, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+    }    
+
     if (count % 10000 == 0 || count == max_count-1) {
       prt_progress_bar((float) count / (float) (max_count-1));
     } 
@@ -492,6 +522,8 @@ int main(int argc, char* argv[]) {
   }  
   submit_file.close();
   test_file_bin.close();
+  if(write_ffm) {  ffm_te.close(); }
+  if(!write_ffm) ffm_te_pred.close();
   printf("\n");
   }
 
