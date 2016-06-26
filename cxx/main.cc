@@ -280,6 +280,7 @@ int main(int argc, char* argv[]) {
     FILE *client_group_ro_file;
     int id; float c0, c1;
     client_group_ro_file = fopen("client_ro.csv", "r");
+    assert(client_group_ro_file);
     while (fscanf(client_group_ro_file, "%d,%f,%f\n", &id, &c0, &c1) != EOF)
       client_group_ro[id]=make_tuple(c0, c1);    
     fclose(client_group_ro_file);
@@ -476,8 +477,8 @@ int main(int argc, char* argv[]) {
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
-  ofstream ffm_te_s; if (write_ffm_s) ffm_te.open("ffm_te.s.txt");
-  ofstream ffm_te2_s; if (write_ffm_s) ffm_te2.open("ffm_te2.s.txt");
+  ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
+  ofstream ffm_te2_s; if (write_ffm_s) ffm_te2_s.open("ffm_te2.s.txt");
 
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
