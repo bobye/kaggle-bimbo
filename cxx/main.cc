@@ -451,13 +451,13 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     }
     if (Semana == 9 && use_valid) {      
-      float tmp;
+      float tmp, tmp2;
       prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
 
       if (!write_ffm) {
 	ffm_te_pred >> tmp;
 	valid_file.write((char*) &tmp, sizeof(float));
-	ffm_te_pred_recent >> tmp;
+	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
 	valid_file.write((char*) &tmp, sizeof(float));
       }
       tmp=Demanda_uni_equil;
@@ -500,7 +500,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.last3.txt");
   while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
-    float tmp;
+    float tmp, tmp2;
     test_file_bin.read((char*) &id, sizeof(int));
     test_file_bin.read((char*) &Semana, sizeof(int));
     test_file_bin.read((char*) &Agencia_ID, sizeof(int));
@@ -513,7 +513,7 @@ int main(int argc, char* argv[]) {
     if (!write_ffm) {
       ffm_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
-      ffm_te_pred_recent >> tmp;
+      ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
       submit_file.write((char*) &tmp, sizeof(float));
     }
     if (write_ffm) {
