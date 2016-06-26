@@ -431,6 +431,7 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.last3.txt");
   bool first_line_valid=true;
   do {
     if (first_line_valid) {
@@ -456,6 +457,8 @@ int main(int argc, char* argv[]) {
       if (!write_ffm) {
 	ffm_te_pred >> tmp;
 	valid_file.write((char*) &tmp, sizeof(float));
+	ffm_te_pred_recent >> tmp;
+	valid_file.write((char*) &tmp, sizeof(float));
       }
       tmp=Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
@@ -479,7 +482,7 @@ int main(int argc, char* argv[]) {
   while (t_count < max_count);
   valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
-  if(!write_ffm) ffm_te_pred.close();
+  if(!write_ffm) { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   printf("\n");
   }
   train_file_bin.close();
@@ -494,6 +497,7 @@ int main(int argc, char* argv[]) {
   cout << "Write Test Submit:\n";
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.last3.txt");
   while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     float tmp;
@@ -509,6 +513,8 @@ int main(int argc, char* argv[]) {
     if (!write_ffm) {
       ffm_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
+      ffm_te_pred_recent >> tmp;
+      submit_file.write((char*) &tmp, sizeof(float));
     }
     if (write_ffm) {
       ffm_te << 0 << "\t"; // write dummy label
@@ -523,7 +529,7 @@ int main(int argc, char* argv[]) {
   submit_file.close();
   test_file_bin.close();
   if(write_ffm) {  ffm_te.close(); }
-  if(!write_ffm) ffm_te_pred.close();
+  if(!write_ffm) { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   printf("\n");
   }
 
