@@ -36,6 +36,8 @@ std::unordered_map<int, float> p_weight;
 
 // <Producto_ID> => count
 std::unordered_map<int, float> p_popularity;
+
+// <field, ID> => index
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
 size_t *next_id, *next_id_prod;
 short int* demands; 
@@ -431,7 +433,7 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
-  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.last3.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   bool first_line_valid=true;
   do {
     if (first_line_valid) {
@@ -457,8 +459,8 @@ int main(int argc, char* argv[]) {
       if (!write_ffm) {
 	ffm_te_pred >> tmp;
 	valid_file.write((char*) &tmp, sizeof(float));
-	//	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
-	//	valid_file.write((char*) &tmp2, sizeof(float));
+	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
+	valid_file.write((char*) &tmp2, sizeof(float));
       }
       tmp=Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
@@ -497,7 +499,7 @@ int main(int argc, char* argv[]) {
   cout << "Write Test Submit:\n";
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
-  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.last3.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     float tmp, tmp2;
@@ -513,8 +515,8 @@ int main(int argc, char* argv[]) {
     if (!write_ffm) {
       ffm_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
-      //      ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
-      //      submit_file.write((char*) &tmp2, sizeof(float));
+      ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
+      submit_file.write((char*) &tmp2, sizeof(float));
     }
     if (write_ffm) {
       ffm_te << 0 << "\t"; // write dummy label
