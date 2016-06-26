@@ -458,7 +458,7 @@ int main(int argc, char* argv[]) {
 	ffm_te_pred >> tmp;
 	valid_file.write((char*) &tmp, sizeof(float));
 	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
-	valid_file.write((char*) &tmp, sizeof(float));
+	valid_file.write((char*) &tmp2, sizeof(float));
       }
       tmp=Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
@@ -514,7 +514,7 @@ int main(int argc, char* argv[]) {
       ffm_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
       ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
-      submit_file.write((char*) &tmp, sizeof(float));
+      submit_file.write((char*) &tmp2, sizeof(float));
     }
     if (write_ffm) {
       ffm_te << 0 << "\t"; // write dummy label
