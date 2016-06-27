@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 task='cv' # {'train','cv','predict'}
-has_history=true;
+has_history=True
 #param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':24}
 model_name='0003.model'
