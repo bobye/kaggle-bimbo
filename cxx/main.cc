@@ -60,8 +60,9 @@ inline void prt_progress_bar(float progress) {
 }
 
 
-inline void get_historical_data(size_t jj, float *historical_data) {
+inline unsigned char get_historical_data(size_t jj, float *historical_data, int current_month) {
   int n=0, count_month=0, month=-1;
+  unsigned char histo = 0;
   historical_data[0]=0;
   while (jj != 0 && n <6) {
     if (months[jj] != month && month!=-1) {
@@ -71,6 +72,7 @@ inline void get_historical_data(size_t jj, float *historical_data) {
       historical_data[n] = 0;
     }; 
     month = months[jj];
+    histo |= 1 << (month - (current_month - 6));
     count_month++;
     historical_data[n] += log(demands[jj]+1);
     jj=next_id[jj];    
@@ -78,6 +80,7 @@ inline void get_historical_data(size_t jj, float *historical_data) {
   for (; jj!=0&&n<6; ++n) {
     historical_data[n] = MISSING;
   }
+  return histo;
 }
 
 inline float get_logmean(size_t jj) {
@@ -152,15 +155,15 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 
 
 
-void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
+void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
   using namespace std;
   {
     float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
     auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
     auto itr = last_group.find(key);
-    float logmean;
+    float logmean, histo = 0;
     if (itr != last_group.end()) {
-      get_historical_data(itr->second, historical_data);
+      histo = get_historical_data(itr->second, historical_data, Semana);
     }
     out.write((char*)historical_data, sizeof(historical_data));
     if (itr != last_group.end()) {
@@ -168,6 +171,7 @@ void prepare_features(std::ofstream &out, int Cliente_ID, int Producto_ID, int A
     } else {
       logmean=MISSING;
     }
+    out.write((char*) &histo, sizeof(float));
     out.write((char*) &logmean, sizeof(float));
   }
   {
@@ -504,7 +508,7 @@ int main(int argc, char* argv[]) {
     }
     if (Semana == 9 && use_valid) {      
       float tmp, tmp2;
-      prepare_features(valid_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+      prepare_features(valid_file, 9, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
 
       if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
 	ffm_te_pred >> tmp;
@@ -581,7 +585,7 @@ int main(int argc, char* argv[]) {
     test_file_bin.read((char*) &Cliente_ID, sizeof(int));
     test_file_bin.read((char*) &Producto_ID, sizeof(int));
 
-    prepare_features(submit_file, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+    prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
       ffm_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
