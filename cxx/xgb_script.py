@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 task='cv' # {'train','cv','predict'}
+has_history=true;
 #param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':24}
 model_name='0003.model'
@@ -26,6 +27,8 @@ if task == 'train' or task == 'cv':
     print 'start to load training data ... '
     valid_data = np.fromfile("valid.bin", dtype=np.float32)
     valid_data = np.reshape(valid_data, (10408713, len(valid_data)/10408713))
+    if has_history:
+        valid_data=valid_data[valid_data[:,0]!=-999]
     ## down-sample data for local run
     # valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)] 
     data=valid_data[:,0:(valid_data.shape[1]-1)]
