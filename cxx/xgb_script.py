@@ -2,11 +2,12 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='predict' # {'train','cv','predict'}
-param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto'}
-model_name='0002.model'
+task='cv' # {'train','cv','predict'}
+#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':24}
+model_name='0003.model'
 
-
+print param
 # def myobj(preds, dtrain):
 #     labels = dtrain.get_label()
 #     preds = np.maximum(preds, 0)
@@ -37,7 +38,7 @@ if task == 'train' or task == 'cv':
 
 if task == 'cv':
     print 'start cv'
-    res = xgb.cv(param, dtrain, num_boost_round=200, nfold=5,
+    res = xgb.cv(param, dtrain, num_boost_round=300, nfold=5,
                  seed = 0,
                  callbacks=[xgb.callback.print_evaluation(show_stdv=False),
                             xgb.callback.early_stop(3)])
@@ -45,14 +46,14 @@ if task == 'cv':
 if task == 'train':
     num_round = 200;
     bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
-
+    print bst.get_fscore()
     bst.save_model(model_name);
 
 if task == 'predict':
     test_data = np.fromfile("test_feature.bin", dtype=np.float32);    
     test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
     dtest = xgb.DMatrix(test_data, missing = -999.0)
-    bst = xgb.Booster();
+    bst = xgb.Booster(param);
     bst.load_model(model_name)
     pred = bst.predict(dtest)
     pred[pred<0] = 0 # set positive
