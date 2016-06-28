@@ -3,7 +3,7 @@ import numpy as np
 
 
 k=3
-d=2
+d=6
 
 raw_data = np.loadtxt('ffm_tr_knn_data.txt')
 train = raw_data[:,0:(raw_data.shape[1]-1)]
