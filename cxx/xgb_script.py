@@ -41,7 +41,8 @@ if task == 'train' or task == 'cv':
 
 if task == 'cv':
     print 'start cv'
-    res = xgb.cv(param, dtrain, num_boost_round=300, nfold=5,
+    cv_folds = np.loadtxt("folds.txt")
+    res = xgb.cv(param, dtrain, num_boost_round=300, folds=cv_folds,
                  seed = 0,
                  callbacks=[xgb.callback.print_evaluation(show_stdv=False),
                             xgb.callback.early_stop(3)])

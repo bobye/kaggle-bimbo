@@ -477,6 +477,10 @@ int main(int argc, char* argv[]) {
 
   /* re-scan for validation */
   if (use_valid) {
+  const int nfold=5; 
+  hash<int> int_hash;
+  ofstream fold_file; fold_file.open("folds.txt");
+
   cout << "File Scan Resume:\n";
   ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
@@ -542,6 +546,8 @@ int main(int argc, char* argv[]) {
 	  write_ffm_data_s(ffm_te2_s, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count_s);
 	}
       }
+
+      fold_file << int_hash(Cliente_ID) % nfold << endl;
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -550,6 +556,7 @@ int main(int argc, char* argv[]) {
     t_count ++;
   }
   while (t_count < max_count);
+  fold_file.close();
   valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
   if(write_ffm_s) {  ffm_te_s.close();   ffm_te2_s.close(); }
