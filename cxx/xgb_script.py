@@ -56,8 +56,8 @@ if task == 'train':
     if is_final:
         bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
     else:
-        train0=dtrain.slice(np.nonzero(cv_folds != 0))
-        valid0=dtrain.slice(np.nonzero(cv_folds == 0))        
+        train0=dtrain.slice(np.nonzero([x!=0 for x in cv_folds]))
+        valid0=dtrain.slice(np.nonzero([x==0 for x in cv_folds]))        
         watchlist=[(train0, 'train'), (valid0, 'eval')]
         bst = xgb.train(param, train0,
                         num_boost_round = num_round, verbose_eval=True,
