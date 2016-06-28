@@ -14,7 +14,7 @@ nbrs = NearestNeighbors(n_neighbors=k, algorithm='kd_tree').fit(train)
 raw_data_txt = np.loadtxt('ffm_te_knn_data.txt', delimiter='\n', dtype=str);
 raw_data = -999 * np.ones((len(raw_data_txt), d+1))
 for count,line in enumerate(raw_data_txt):
-    tmp = np.array([float(x) for x in line.split(' ')])
+    tmp = np.array([float(x) for x in line.split()])
     if len(tmp)==d+1:
         raw_data[count,:] = tmp;
 del raw_data_txt
