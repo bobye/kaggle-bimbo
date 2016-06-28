@@ -1,11 +1,12 @@
 import xgboost as xgb
 import numpy as np
 import pandas as pd
+from sklearn.cross_validation import LabelKFold
 
 task='cv' # {'train','cv','predict'}
-has_history=True
-#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':24}
+has_history=False
+#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':8}
+param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':8}
 model_name='0003.model'
 
 print param
@@ -42,7 +43,8 @@ if task == 'train' or task == 'cv':
 if task == 'cv':
     print 'start cv'
     cv_folds = np.loadtxt("folds.txt")
-    res = xgb.cv(param, dtrain, num_boost_round=300, folds=cv_folds,
+    label_kfold = LabelKFold(cv_folds, max(cv_folds)+1)
+    res = xgb.cv(param, dtrain, num_boost_round=300, folds=label_kfold,
                  seed = 0,
                  callbacks=[xgb.callback.print_evaluation(show_stdv=False),
                             xgb.callback.early_stop(3)])
