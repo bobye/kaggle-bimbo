@@ -484,7 +484,7 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
   ofstream ffm_te2_s; if (write_ffm_s) ffm_te2_s.open("ffm_te2.s.txt");
 
-  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_fact.txt");
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
 
@@ -511,8 +511,11 @@ int main(int argc, char* argv[]) {
       prepare_features(valid_file, 9, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
 
       if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
-	ffm_te_pred >> tmp;
-	valid_file.write((char*) &tmp, sizeof(float));
+	tmp=0;
+	for (int ii=0; ii<6; ++ii) {
+	  ffm_te_pred >> tmp2; tmp += tmp2;
+	  valid_file.write((char*) &tmp2, sizeof(float));
+	}
 	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
 	valid_file.write((char*) &tmp2, sizeof(float));
       }
@@ -587,8 +590,11 @@ int main(int argc, char* argv[]) {
 
     prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
-      ffm_te_pred >> tmp;
-      submit_file.write((char*) &tmp, sizeof(float));
+      tmp=0;
+      for (int ii=0; ii<6; ++ii) {
+	ffm_te_pred >> tmp2; tmp += tmp2;
+	valid_file.write((char*) &tmp2, sizeof(float));
+      }
       ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
       submit_file.write((char*) &tmp2, sizeof(float));
     }
