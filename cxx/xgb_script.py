@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 from sklearn.cross_validation import LabelKFold
 
-task='cv' # {'train','cv','predict'}
+task='train' # {'train','cv','predict'}
+is_final=False
 has_history=False
 #param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':8}
 param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':8}
@@ -50,8 +51,17 @@ if task == 'cv':
                             xgb.callback.early_stop(3)])
 
 if task == 'train':
-    num_round = 200;
-    bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
+    num_round = 300;
+    cv_folds = np.loadtxt("folds.txt")
+    if is_final:
+        bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
+    else:
+        train0=dtrain.slice(np.nonzero(cv_folds != 0))
+        valid0=dtrain.slice(np.nonzero(cv_folds == 0))        
+        watchlist=[(train0, 'train'), (valid0, 'eval')]
+        bst = xgb.train(param, train0,
+                        num_boost_round = num_round, verbose_eval=True,
+                        evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
     bst.save_model(model_name);
 
