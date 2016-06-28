@@ -196,7 +196,7 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
     if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID]; 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));
-    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=p_popularity[Producto_ID]; 
+    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=log(p_popularity[Producto_ID]+1); 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));    
   }
@@ -517,6 +517,7 @@ int main(int argc, char* argv[]) {
 	  valid_file.write((char*) &tmp2, sizeof(float));
 	}
 	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
+	valid_file.write((char*) &tmp, sizeof(float));
 	valid_file.write((char*) &tmp2, sizeof(float));
       }
       if (!write_ffm_s && ffm_te_pred_s.is_open()) {
@@ -596,6 +597,7 @@ int main(int argc, char* argv[]) {
 	submit_file.write((char*) &tmp2, sizeof(float));
       }
       ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
+      submit_file.write((char*) &tmp, sizeof(float));
       submit_file.write((char*) &tmp2, sizeof(float));
     }
     if (!write_ffm_s && ffm_te_pred_s.is_open()) {
