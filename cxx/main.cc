@@ -574,7 +574,7 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
 
-  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_fact.txt");
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
   while (count < max_count) {
@@ -593,7 +593,7 @@ int main(int argc, char* argv[]) {
       tmp=0;
       for (int ii=0; ii<6; ++ii) {
 	ffm_te_pred >> tmp2; tmp += tmp2;
-	valid_file.write((char*) &tmp2, sizeof(float));
+	submit_file.write((char*) &tmp2, sizeof(float));
       }
       ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
       submit_file.write((char*) &tmp2, sizeof(float));
