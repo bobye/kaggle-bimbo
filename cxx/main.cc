@@ -196,7 +196,7 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
     if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID]; 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));
-    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=p_popularity[Producto_ID]; 
+    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=log(p_popularity[Producto_ID]+1); 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));    
   }
