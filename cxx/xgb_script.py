@@ -6,8 +6,8 @@ from sklearn.cross_validation import LabelKFold
 task='train' # {'train','cv','predict'}
 is_final=False
 has_history=False
-#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':8}
-param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'auto', 'nthread':8}
+#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 model_name='0003.model'
 
 print param
@@ -24,10 +24,10 @@ print param
 #     preds = np.maximum(preds, 0)
 #     return 'error', np.sqrt(((preds - labels) ** 2).mean())
 
-
-if task == 'train' or task == 'cv':
+def get_data(filename):
+    "read training data from .bin file"
     print 'start to load training data ... '
-    valid_data = np.fromfile("valid.bin", dtype=np.float32)
+    valid_data = np.fromfile(filename, dtype=np.float32)
     valid_data = np.reshape(valid_data, (10408713, len(valid_data)/10408713))
     if has_history:
         valid_data=valid_data[valid_data[:,0]!=-999]
@@ -39,7 +39,11 @@ if task == 'train' or task == 'cv':
 
     print 'prepare training'
     dtrain = xgb.DMatrix(data, label=np.log(label+1), missing = -999.0)
+    return dtrain
 
+if task == 'train':
+    dtrain=get_data('valid8_cache/valid.bin');
+    dvalid=get_data('valid9_cache/valid.bin');
 
 if task == 'cv':
     print 'start cv'
@@ -51,15 +55,12 @@ if task == 'cv':
                             xgb.callback.early_stop(3)])
 
 if task == 'train':
-    num_round = 300;
-    cv_folds = np.loadtxt("folds.txt")
+    num_round = 1000;
     if is_final:
         bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
     else:
-        train0=dtrain.slice(np.where(cv_folds != 0)[0])
-        valid0=dtrain.slice(np.where(cv_folds == 0)[0])        
-        watchlist=[(train0, 'train'), (valid0, 'eval')]
-        bst = xgb.train(param, train0,
+        watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
+        bst = xgb.train(param, dtrain,
                         num_boost_round = num_round, verbose_eval=True,
                         evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
