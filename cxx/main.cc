@@ -295,7 +295,7 @@ int main(int argc, char* argv[]) {
   }
 
   /* scanning training file */
-  ifstream train_file_bin; train_file_bin.open("../train.bin", ios::binary); assert(train_file_bin);
+  ifstream train_file_bin; train_file_bin.open("/home/jxy198/kaggle-inventory/cxx/train.bin", ios::binary); assert(train_file_bin);
   ofstream ffm_tr; if (write_ffm) ffm_tr.open("ffm_tr.txt");
   ofstream ffm_tr_s; if (write_ffm_s) ffm_tr_s.open("ffm_tr.s.txt");
   cout << "File Scan:\n";
@@ -392,7 +392,7 @@ int main(int argc, char* argv[]) {
   /* load product weights */
 
   FILE *product_file;
-  product_file = fopen("../product_weight.csv", "r");
+  product_file = fopen("/home/jxy198/kaggle-inventory/cxx/product_weight.csv", "r");
   if (product_file == NULL)
     exit(EXIT_FAILURE);
   for (int i=0; i<num_of_products; ++i) {
@@ -576,8 +576,8 @@ int main(int argc, char* argv[]) {
   if (!use_valid) {
   /* write submit files */
   ofstream submit_file;
-  submit_file.open("../test_feature.bin", ios::out | ios::binary);
-  ifstream test_file_bin; test_file_bin.open("../test.bin", ios::binary); assert(test_file_bin);
+  submit_file.open("/home/jxy198/kaggle-inventory/cxx/test_feature.bin", ios::out | ios::binary);
+  ifstream test_file_bin; test_file_bin.open("/home/jxy198/kaggle-inventory/cxx/test.bin", ios::binary); assert(test_file_bin);
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
