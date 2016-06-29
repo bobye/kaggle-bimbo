@@ -24,11 +24,11 @@ print param
 #     preds = np.maximum(preds, 0)
 #     return 'error', np.sqrt(((preds - labels) ** 2).mean())
 
-def get_data(filename):
+def get_data(filename, size):
     "read training data from .bin file"
     print 'start to load training data ... '
     valid_data = np.fromfile(filename, dtype=np.float32)
-    valid_data = np.reshape(valid_data, (10408713, len(valid_data)/10408713))
+    valid_data = np.reshape(valid_data, (size, len(valid_data)/size))
     if has_history:
         valid_data=valid_data[valid_data[:,0]!=-999]
     ## down-sample data for local run
@@ -42,8 +42,8 @@ def get_data(filename):
     return dtrain
 
 if task == 'train':
-    dtrain=get_data('valid8_cache/valid.bin');
-    dvalid=get_data('valid9_cache/valid.bin');
+    dtrain=get_data('valid8_cache/valid.bin', 10406868);
+    dvalid=get_data('valid9_cache/valid.bin', 10408713);
 
 if task == 'cv':
     print 'start cv'
