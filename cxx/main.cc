@@ -254,8 +254,12 @@ int main(int argc, char* argv[]) {
 
   /* use validation */
   bool use_valid, write_ffm, write_ffm_s;
+  int valid_month;
   assert(argc == 2);
-  if (argv[1][0] == 'v')  use_valid = true;
+  if (argv[1][0] >= '0' && argv[1][0] <='9')  {
+    use_valid = true;
+    valid_month = argv[1][0] - '0';
+  }
   else if (argv[1][0] == 't')  use_valid = false;
   else assert(false);
 
@@ -311,7 +315,7 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     
     
-    if (Semana == 9 && use_valid) break;
+    if (Semana == valid_month && use_valid) break;
 
     months[t_count]= Semana;
     demands[t_count] = Demanda_uni_equil;
@@ -388,7 +392,7 @@ int main(int argc, char* argv[]) {
   /* load product weights */
 
   FILE *product_file;
-  product_file = fopen("product_weight.csv", "r");
+  product_file = fopen("../product_weight.csv", "r");
   if (product_file == NULL)
     exit(EXIT_FAILURE);
   for (int i=0; i<num_of_products; ++i) {
@@ -482,7 +486,7 @@ int main(int argc, char* argv[]) {
   ofstream fold_file; fold_file.open("folds.txt");
 
   cout << "File Scan Resume:\n";
-  ofstream valid_file; valid_file.open("valid.bin", ios::out | ios::binary);
+  ofstream valid_file; if (!write_ffm && !write_ffm_s) valid_file.open("../valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
@@ -510,9 +514,10 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Dev_proxima, sizeof(float) );
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     }
-    if (Semana == 9 && use_valid) {      
+    if (Semana == valid_month && use_valid) {      
       float tmp, tmp2;
-      prepare_features(valid_file, 9, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+      if (!write_ffm && !write_ffm_s) {
+      prepare_features(valid_file, valid_month, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
 
       if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
 	ffm_te_pred >> tmp;
@@ -526,6 +531,7 @@ int main(int argc, char* argv[]) {
       }
       tmp=Demanda_uni_equil;
       valid_file.write((char*) &tmp, sizeof(float));
+      }
 
       if (write_ffm) {
 	ffm_te << log(Demanda_uni_equil+1) << "\t";
@@ -557,7 +563,7 @@ int main(int argc, char* argv[]) {
   }
   while (t_count < max_count);
   fold_file.close();
-  valid_file.close();
+  if (!write_ffm && !write_ffm_s)  valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
   if(write_ffm_s) {  ffm_te_s.close();   ffm_te2_s.close(); }
   if(!write_ffm && ffm_te_pred_s.is_open() && ffm_te_pred_recent.is_open()) 
@@ -571,7 +577,7 @@ int main(int argc, char* argv[]) {
   /* write submit files */
   ofstream submit_file;
   submit_file.open("test_feature.bin", ios::out | ios::binary);
-  ifstream test_file_bin; test_file_bin.open("test.bin", ios::binary);
+  ifstream test_file_bin; test_file_bin.open("../test.bin", ios::binary);
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
