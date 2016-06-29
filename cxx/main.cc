@@ -295,7 +295,7 @@ int main(int argc, char* argv[]) {
   }
 
   /* scanning training file */
-  ifstream train_file_bin; train_file_bin.open("train.bin", ios::binary);
+  ifstream train_file_bin; train_file_bin.open("../train.bin", ios::binary); assert(train_file_bin);
   ofstream ffm_tr; if (write_ffm) ffm_tr.open("ffm_tr.txt");
   ofstream ffm_tr_s; if (write_ffm_s) ffm_tr_s.open("ffm_tr.s.txt");
   cout << "File Scan:\n";
@@ -486,7 +486,7 @@ int main(int argc, char* argv[]) {
   ofstream fold_file; fold_file.open("folds.txt");
 
   cout << "File Scan Resume:\n";
-  ofstream valid_file; if (!write_ffm && !write_ffm_s) valid_file.open("../valid.bin", ios::out | ios::binary);
+  ofstream valid_file; if (!write_ffm && !write_ffm_s) valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
@@ -576,8 +576,8 @@ int main(int argc, char* argv[]) {
   if (!use_valid) {
   /* write submit files */
   ofstream submit_file;
-  submit_file.open("test_feature.bin", ios::out | ios::binary);
-  ifstream test_file_bin; test_file_bin.open("../test.bin", ios::binary);
+  submit_file.open("../test_feature.bin", ios::out | ios::binary);
+  ifstream test_file_bin; test_file_bin.open("../test.bin", ios::binary); assert(test_file_bin);
   count = 1; 
   max_count = 6999252;
   cout << "Write Test Submit:\n";
