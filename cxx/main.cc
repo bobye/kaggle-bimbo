@@ -41,7 +41,7 @@ std::unordered_map<int, float> p_popularity;
 // <field, ID> => index
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
 size_t *next_id, *next_id_prod;
-short int* demands; 
+short int* demands, *sales, *returns; 
 char* months; 
 int* client_ids;
 
@@ -67,6 +67,7 @@ inline unsigned char get_historical_data(size_t jj, float *historical_data, int 
   while (jj != 0 && n <6) {
     if (months[jj] != month && month!=-1) {
       historical_data[n]/=count_month; 
+      historical_data[n+6]/=count_month; 
       n++; if (n>=6) break;
       count_month=0;
       historical_data[n] = 0;
@@ -74,11 +75,13 @@ inline unsigned char get_historical_data(size_t jj, float *historical_data, int 
     month = months[jj];
     histo |= 1 << (month - (current_month - 6));
     count_month++;
-    historical_data[n] += log(demands[jj]+1);
+    historical_data[n] += log(sales[jj]+1);
+    historical_data[n+6] += log(returns[jj]+1);
     jj=next_id[jj];    
   }
   for (; jj!=0&&n<6; ++n) {
     historical_data[n] = MISSING;
+    historical_data[n+6] = MISSING;
   }
   return histo;
 }
@@ -158,7 +161,8 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
   using namespace std;
   {
-    float historical_data[6]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+    float historical_data[12]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING, 
+			       MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
     auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
     auto itr = last_group.find(key);
     float logmean, histo = 0;
@@ -280,6 +284,8 @@ int main(int argc, char* argv[]) {
   next_id = (size_t*) calloc(max_count, sizeof(size_t));
   next_id_prod = (size_t*) calloc(max_count, sizeof(size_t));
   demands = (short int*)    malloc(max_count * sizeof(short int));
+  sales = (short int*)    malloc(max_count * sizeof(short int));
+  returns = (short int*)    malloc(max_count * sizeof(short int));
   months  = (char*)    malloc(max_count * sizeof(char));
   client_ids = (int*) malloc(max_count * sizeof(int));
 
@@ -321,6 +327,8 @@ int main(int argc, char* argv[]) {
 
     months[t_count]= Semana;
     demands[t_count] = Demanda_uni_equil;
+    sales[t_count] = Venta_uni_hoy;
+    returns[t_count] = Dev_uni_proxima;
     client_ids[t_count] = Cliente_ID;
     {
       auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
@@ -658,6 +666,6 @@ int main(int argc, char* argv[]) {
   }
 
   free(next_id); 
-  free(demands); free(months); 
+  free(demands); free(sales); free(returns); free(months); 
   return 0;
 }
