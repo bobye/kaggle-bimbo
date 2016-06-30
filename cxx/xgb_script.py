@@ -64,6 +64,9 @@ if task == 'train':
                         num_boost_round = 1000, verbose_eval=True,
                         evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
+    pred = bst.predict(dvalid)
+    label = dvalid.get_label()
+    np.savetxt('errors.txt', np.concatenate((pred, label-pred)).reshape((2,len(label))).T, fmt='%.5f')
     bst.save_model(model_name);
 
 if (task == 'train' and is_final) or (task == 'predict'):
