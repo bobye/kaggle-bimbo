@@ -4,12 +4,13 @@ import pandas as pd
 from sklearn.cross_validation import LabelKFold
 
 task='train' # {'train','cv','predict'}
-is_final=True
+is_final=False
 has_history=False
-num_round=123
+num_round=132
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':8, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 model_name='0003.model'
+select=[0,1,2,3,4]
 
 print param
 # def myobj(preds, dtrain):
@@ -36,6 +37,8 @@ def get_data(filename, size):
     # valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)] 
     data=valid_data[:,0:(valid_data.shape[1]-1)]
     label=valid_data[:,valid_data.shape[1]-1]
+    if select is not None:
+        data=data[:,select]
     del valid_data
 
     print 'prepare training'
@@ -72,6 +75,8 @@ if task == 'train':
 if (task == 'train' and is_final) or (task == 'predict'):
     test_data = np.fromfile("test_feature.bin", dtype=np.float32);    
     test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
+    if select is not None:
+        test_data = test_data[:, select]
     dtest = xgb.DMatrix(test_data, missing = -999.0)
     bst = xgb.Booster(param);
     bst.load_model(model_name)
