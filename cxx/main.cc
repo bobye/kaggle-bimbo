@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
   using namespace std;
 
   /* use validation */
-  bool use_valid, write_ffm, write_ffm_s;
+  bool use_valid, write_ffm, write_ffm_s, read_knn;
   int valid_month;
   assert(argc == 2);
   if (argv[1][0] >= '0' && argv[1][0] <='9')  {
@@ -269,6 +269,8 @@ int main(int argc, char* argv[]) {
   if (argv[1][2] == 'w') write_ffm_s = true;
   else if (argv[1][2] == 'r') write_ffm_s = false;
 
+  if (argv[1][3] == 'r') read_knn = true;
+  else read_knn = false;
   /* basic line reader utility */
   char *line = NULL; 
   size_t len = 0;
@@ -495,7 +497,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
-
+  ifstream knn_te_pred; if (read_knn) knn_te_pred.open("knn_te_pred.txt");
   bool first_line_valid=true;
   do {
     if (first_line_valid) {
@@ -516,21 +518,34 @@ int main(int argc, char* argv[]) {
     }
     if (Semana == valid_month && use_valid) {      
       float tmp, tmp2;
-      if (!write_ffm && !write_ffm_s) {
-      prepare_features(valid_file, valid_month, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+      if (!write_ffm && !write_ffm_s && read_knn) {
+	// write regular features
+	{
+	  prepare_features(valid_file, valid_month, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+	}
 
-      if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
-	ffm_te_pred >> tmp;
-	valid_file.write((char*) &tmp, sizeof(float));
-	ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
-	valid_file.write((char*) &tmp2, sizeof(float));
-      }
-      if (!write_ffm_s && ffm_te_pred_s.is_open()) {
-	ffm_te_pred_s >> tmp;
-	valid_file.write((char*) &tmp, sizeof(float));	
-      }
-      tmp=Demanda_uni_equil;
-      valid_file.write((char*) &tmp, sizeof(float));
+	// write different ffm features
+	if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
+	  ffm_te_pred >> tmp;
+	  valid_file.write((char*) &tmp, sizeof(float));
+	  ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
+	  valid_file.write((char*) &tmp2, sizeof(float));
+	}
+	if (!write_ffm_s && ffm_te_pred_s.is_open()) {
+	  ffm_te_pred_s >> tmp;
+	  valid_file.write((char*) &tmp, sizeof(float));	
+	}
+	if (read_knn && knn_te_pred.is_open()) {
+	  knn_te_pred >> tmp >> tmp2;
+	  valid_file.write((char*) &tmp, sizeof(float));
+	  valid_file.write((char*) &tmp2, sizeof(float));
+	}
+
+	// write labels
+	{
+	  tmp=Demanda_uni_equil;
+	  valid_file.write((char*) &tmp, sizeof(float));
+	}
       }
 
       if (write_ffm) {
@@ -569,6 +584,7 @@ int main(int argc, char* argv[]) {
   if(!write_ffm && ffm_te_pred_s.is_open() && ffm_te_pred_recent.is_open()) 
     { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   if(!write_ffm_s && ffm_te_pred_s.is_open()) { ffm_te_pred_s.close();}
+  if (read_knn) knn_te_pred.close();
   printf("\n");
   }
   train_file_bin.close();
@@ -587,6 +603,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
+  ifstream knn_te_pred; if (read_knn) knn_te_pred.open("knn_te_pred.txt");
   while (count < max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     float tmp, tmp2;
@@ -608,6 +625,11 @@ int main(int argc, char* argv[]) {
     if (!write_ffm_s && ffm_te_pred_s.is_open()) {
       ffm_te_pred_s >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
+    }
+    if (read_knn && knn_te_pred.is_open()) {
+      knn_te_pred >> tmp >> tmp2;
+      submit_file.write((char*) &tmp, sizeof(float));
+      submit_file.write((char*) &tmp2, sizeof(float));
     }
 
     if (write_ffm) {
@@ -631,6 +653,7 @@ int main(int argc, char* argv[]) {
   if(!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) 
     { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   if(!write_ffm_s && ffm_te_pred_s.is_open()) { ffm_te_pred_s.close();}
+  if(read_knn) {knn_te_pred.close();}
   printf("\n");
   }
 
