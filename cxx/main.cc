@@ -166,7 +166,7 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
 		     static_cast<float>(Agencia_ID), 
 		     static_cast<float>(Canal_ID), 
 		     static_cast<float>(Ruta_SAK)};
-    cout.write((char*) tmps, sizeof(tmps));
+    out.write((char*) tmps, sizeof(tmps));
   }
   {
     float historical_data[12]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING, 
