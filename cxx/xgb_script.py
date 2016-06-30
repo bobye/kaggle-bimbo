@@ -4,10 +4,11 @@ import pandas as pd
 from sklearn.cross_validation import LabelKFold
 
 task='train' # {'train','cv','predict'}
-is_final=False
+is_final=True
 has_history=False
-#param = {'max_depth':4, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':5, 'eta':0.8, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+num_round=123
+#param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':8, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 model_name='0003.model'
 
 print param
@@ -55,18 +56,17 @@ if task == 'cv':
                             xgb.callback.early_stop(3)])
 
 if task == 'train':
-    num_round = 1000;
     if is_final:
-        bst = xgb.train(param, dtrain, num_boost_round=num_round, verbose_eval=True);
+        bst = xgb.train(param, dvalid, num_boost_round=num_round, verbose_eval=True);
     else:
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
-                        num_boost_round = num_round, verbose_eval=True,
+                        num_boost_round = 1000, verbose_eval=True,
                         evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
     bst.save_model(model_name);
 
-if task == 'predict':
+if (task == 'train' and is_final) or (task == 'predict'):
     test_data = np.fromfile("test_feature.bin", dtype=np.float32);    
     test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
     dtest = xgb.DMatrix(test_data, missing = -999.0)
