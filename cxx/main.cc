@@ -161,6 +161,14 @@ void linear_regression(double *xx, double *yy, size_t n, size_t p, double *ww) {
 void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Producto_ID, int Agencia_ID, int Canal_ID, int Ruta_SAK) {
   using namespace std;
   {
+    float tmps[5] = {static_cast<float>(Cliente_ID), 
+		     static_cast<float>(Producto_ID), 
+		     static_cast<float>(Agencia_ID), 
+		     static_cast<float>(Canal_ID), 
+		     static_cast<float>(Ruta_SAK)};
+    cout.write((char*) tmps, sizeof(tmps));
+  }
+  {
     float historical_data[12]={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING, 
 			       MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
     auto key = make_tuple(Cliente_ID, Producto_ID, Agencia_ID, (char) Canal_ID);
