@@ -264,30 +264,41 @@ void write_ffm_data_s(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int A
 int main(int argc, char* argv[]) {
   using namespace std;
 
-  /* use validation */
+  int offset=0;
   bool use_valid, write_ffm, write_ffm_s, read_knn;
   int valid_month;
-  assert(argc == 2);
+  assert(argc == 3);
+
+  /* parameter for validation setup */
   if (argv[1][0] >= '0' && argv[1][0] <='9')  {
     use_valid = true;
     valid_month = argv[1][0] - '0';
   }
-  else if (argv[1][0] == 't')  use_valid = false;
+  else if (argv[1][0] == 't')  { 
+    use_valid = false;
+    valid_month = 10;
+  }
   else assert(false);
 
-  if (argv[1][1] == 'w') write_ffm = true;
-  else if (argv[1][1] == 'r') write_ffm = false;
+  if (argv[1][1] == '0'+1) offset=1;
 
-  if (argv[1][2] == 'w') write_ffm_s = true;
-  else if (argv[1][2] == 'r') write_ffm_s = false;
+  /* parameter for feature setup */
+  if (argv[2][0] == 'w') write_ffm = true;
+  else if (argv[2][0] == 'r') write_ffm = false;
 
-  if (argv[1][3] == 'r') read_knn = true;
+  if (argv[2][1] == 'w') write_ffm_s = true;
+  else if (argv[2][1] == 'r') write_ffm_s = false;
+
+  if (argv[2][2] == 'r') read_knn = true;
   else read_knn = false;
+
+  
   /* basic line reader utility */
   char *line = NULL; 
   size_t len = 0;
   ssize_t read;
-  
+
+  /* allocate memory */
   size_t count, t_count, max_count=74180465, num_of_products=2592;
   next_id = (size_t*) calloc(max_count, sizeof(size_t));
   next_id_prod = (size_t*) calloc(max_count, sizeof(size_t));
@@ -331,7 +342,7 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     
     
-    if (Semana == valid_month && use_valid) break;
+    if (Semana == (valid_month - offset)) break;
 
     months[t_count]= Semana;
     demands[t_count] = Demanda_uni_equil;
@@ -499,9 +510,7 @@ int main(int argc, char* argv[]) {
 
   /* re-scan for validation */
   if (use_valid) {
-  const int nfold=5; 
   hash<int> int_hash;
-  ofstream fold_file; fold_file.open("folds.txt");
 
   cout << "File Scan Resume:\n";
   ofstream valid_file; if (!write_ffm && !write_ffm_s) valid_file.open("valid.bin", ios::out | ios::binary);
@@ -584,7 +593,6 @@ int main(int argc, char* argv[]) {
 	}
       }
 
-      fold_file << int_hash(Cliente_ID) % nfold << endl;
     }
 
     if (t_count%10000==0 || t_count == max_count) {
@@ -593,7 +601,6 @@ int main(int argc, char* argv[]) {
     t_count ++;
   }
   while (t_count < max_count);
-  fold_file.close();
   if (!write_ffm && !write_ffm_s)  valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
   if(write_ffm_s) {  ffm_te_s.close();   ffm_te2_s.close(); }
