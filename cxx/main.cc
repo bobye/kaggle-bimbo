@@ -513,7 +513,7 @@ int main(int argc, char* argv[]) {
   hash<int> int_hash;
 
   cout << "File Scan Resume:\n";
-  ofstream valid_file; if (!write_ffm && !write_ffm_s) valid_file.open("valid.bin", ios::out | ios::binary);
+  ofstream valid_file; if (!write_ffm && !write_ffm_s && read_knn) valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
@@ -601,7 +601,7 @@ int main(int argc, char* argv[]) {
     t_count ++;
   }
   while (t_count < max_count);
-  if (!write_ffm && !write_ffm_s)  valid_file.close();
+  if (!write_ffm && !write_ffm_s && read_knn)  valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
   if(write_ffm_s) {  ffm_te_s.close();   ffm_te2_s.close(); }
   if(!write_ffm && ffm_te_pred_s.is_open() && ffm_te_pred_recent.is_open()) 
@@ -615,7 +615,8 @@ int main(int argc, char* argv[]) {
   if (!use_valid) {
   /* write submit files */
   ofstream submit_file;
-  submit_file.open("test_feature.bin", ios::out | ios::binary);
+  if (!write_ffm && !write_ffm_s && read_knn) 
+    { submit_file.open("test_feature.bin", ios::out | ios::binary);}
   ifstream test_file_bin; test_file_bin.open("/home/jxy198/kaggle-inventory/cxx/test.bin", ios::binary); assert(test_file_bin);
   count = 1; 
   max_count = 6999252;
@@ -638,6 +639,8 @@ int main(int argc, char* argv[]) {
     test_file_bin.read((char*) &Cliente_ID, sizeof(int));
     test_file_bin.read((char*) &Producto_ID, sizeof(int));
 
+    if (!write_ffm && !write_ffm_s && read_knn) {
+
     prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
       ffm_te_pred >> tmp;
@@ -654,6 +657,7 @@ int main(int argc, char* argv[]) {
       submit_file.write((char*) &tmp, sizeof(float));
       submit_file.write((char*) &tmp2, sizeof(float));
     }
+    }
 
     if (write_ffm) {
       ffm_te << 0 << "\t"; // write dummy label
@@ -669,7 +673,7 @@ int main(int argc, char* argv[]) {
     } 
     count++;
   }  
-  submit_file.close();
+  if (!write_ffm && !write_ffm_s && read_knn) submit_file.close();
   test_file_bin.close();
   if(write_ffm) {  ffm_te.close(); }
   if(write_ffm_s) {  ffm_te_s.close(); }
