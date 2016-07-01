@@ -615,7 +615,7 @@ int main(int argc, char* argv[]) {
   if (!use_valid) {
   /* write submit files */
   ofstream submit_file;
-  submit_file.open("/home/jxy198/kaggle-inventory/cxx/test_feature.bin", ios::out | ios::binary);
+  submit_file.open("test_feature.bin", ios::out | ios::binary);
   ifstream test_file_bin; test_file_bin.open("/home/jxy198/kaggle-inventory/cxx/test.bin", ios::binary); assert(test_file_bin);
   count = 1; 
   max_count = 6999252;
