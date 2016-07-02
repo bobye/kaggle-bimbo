@@ -5,14 +5,25 @@ import pandas as pd
 task='train' # {'train','cv','predict'}
 is_final=False
 num_round=109
+model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':10, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-model_name='0003.model'
-select=np.arange(5, 30) #model0
-#select=np.arange(5, 26) #model1
-#select=np.arange(18,30) #model2
-#select=[17, 19, 20, 21, 22, 23, 24, 25, 28] #model3
-#select=np.arange(0, 5)
+
+if model==0:
+    model_name='0000.model'
+    select=np.arange(5, 28)
+elif model==1:
+    model_name='0001.model'
+    select=np.arange(5, 24) #model1: without ffm features
+elif model==2:
+    model_name='0002.model'
+    select=np.arange(18,28) #model2: (almost) without history orders
+elif model==3:
+    model_name='0003.model'
+    select=[17, 19, 20, 21, 22, 23, 26] #model3: no client identities
+else:
+    model_name='raw_id.model'
+    select=np.arange(0, 5) # use the raw id as features
 
 print param
 # def myobj(preds, dtrain):
