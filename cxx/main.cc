@@ -32,8 +32,8 @@ std::unordered_map<std::tuple<int, int>, size_t> product_group;
 // <Producto_ID, Agencia_ID> => LinearRegression<w0,w1,w2>
 std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > product_group_coeff;
 
-// <Producto_ID> => weight
-std::unordered_map<int, float> p_weight;
+// <Producto_ID> => <weight, volumn, brand_count>
+std::unordered_map<int, std::tuple<float, float, float>> p_meta;
 
 // <Producto_ID> => count
 std::unordered_map<int, float> p_popularity;
@@ -44,6 +44,8 @@ size_t *next_id, *next_id_prod;
 short int* demands, *sales, *returns; 
 char* months; 
 int* client_ids;
+
+const size_t max_count=74180465, num_of_products=2592, test_max_count = 6999252;
 
 inline void prt_progress_bar(float progress) {
   using namespace std;
@@ -204,10 +206,15 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
   }
 
   {
+    float meta[3]={MISSING, MISSING, MISSING};
+    auto itr= p_meta.find(Producto_ID);
+    if (itr != p_meta.end()) {
+      meta[0]=get<0>(itr->second); 
+      meta[1]=get<1>(itr->second);
+      meta[2]=get<2>(itr->second);
+    }
+    out.write((char*) meta, sizeof(meta));
     float w;
-    if (p_weight.find(Producto_ID) != p_weight.end()) w=p_weight[Producto_ID]; 
-    else w=MISSING;
-    out.write((char*)&w, sizeof(float));
     if (p_popularity.find(Producto_ID) != p_popularity.end()) w=log(p_popularity[Producto_ID]+1); 
     else w=MISSING;
     out.write((char*)&w, sizeof(float));    
@@ -261,11 +268,36 @@ void write_ffm_data_s(std::ofstream &ffm, int Cliente_ID, int Producto_ID, int A
 }
 
 
+void read_product_meta() {
+  using namespace std;
+  FILE *product_file;
+  product_file = fopen("/home/jxy198/kaggle-inventory/cxx/product_meta.csv", "r");
+  if (product_file == NULL)
+    exit(EXIT_FAILURE);
+  for (int i=0; i<num_of_products; ++i) {
+    int id, w, v, bc;
+    fscanf(product_file, "%d,%d,%d,%d", &id, &w, &v, &bc);
+    p_meta[id]=make_tuple((float)w, (float)v, (float)bc);
+  }
+  fclose(product_file);
+}
+
+void read_client_meta() {
+  using namespace std;
+  FILE *client_group_ro_file;
+  int id; float c0, c1;
+  client_group_ro_file = fopen("client_ro.csv", "r");
+  assert(client_group_ro_file);
+  while (fscanf(client_group_ro_file, "%d,%f,%f\n", &id, &c0, &c1) != EOF)
+    client_group_ro[id]=make_tuple(c0, c1);    
+  fclose(client_group_ro_file);
+}
+
 int main(int argc, char* argv[]) {
   using namespace std;
 
   int offset=0;
-  bool use_valid, write_ffm, write_ffm_s, read_knn;
+  bool use_valid, write_ffm, write_ffm_s, read_knn, write_final;
   int valid_month;
   assert(argc == 3);
 
@@ -292,6 +324,9 @@ int main(int argc, char* argv[]) {
   if (argv[2][2] == 'r') read_knn = true;
   else read_knn = false;
 
+
+  // Whether to write the final features
+  write_final = !write_ffm && !write_ffm_s && read_knn;
   
   /* basic line reader utility */
   char *line = NULL; 
@@ -299,7 +334,7 @@ int main(int argc, char* argv[]) {
   ssize_t read;
 
   /* allocate memory */
-  size_t count, t_count, max_count=74180465, num_of_products=2592;
+  size_t count, t_count;
   next_id = (size_t*) calloc(max_count, sizeof(size_t));
   next_id_prod = (size_t*) calloc(max_count, sizeof(size_t));
   demands = (short int*)    malloc(max_count * sizeof(short int));
@@ -311,14 +346,14 @@ int main(int argc, char* argv[]) {
   int Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID,Venta_uni_hoy,Dev_uni_proxima,Demanda_uni_equil;
   float Venta_hoy,Dev_proxima;
 
+  // read client related meta information
   if (write_ffm_s) {
-    FILE *client_group_ro_file;
-    int id; float c0, c1;
-    client_group_ro_file = fopen("client_ro.csv", "r");
-    assert(client_group_ro_file);
-    while (fscanf(client_group_ro_file, "%d,%f,%f\n", &id, &c0, &c1) != EOF)
-      client_group_ro[id]=make_tuple(c0, c1);    
-    fclose(client_group_ro_file);
+    read_client_meta();
+  }
+
+  // read product related meta information
+  if (write_final) {
+    read_product_meta();
   }
 
   /* scanning training file */
@@ -418,18 +453,6 @@ int main(int argc, char* argv[]) {
   printf("\n");
   if (write_ffm) ffm_tr.close();
   if (write_ffm_s) ffm_tr_s.close();
-  /* load product weights */
-
-  FILE *product_file;
-  product_file = fopen("/home/jxy198/kaggle-inventory/cxx/product_weight.csv", "r");
-  if (product_file == NULL)
-    exit(EXIT_FAILURE);
-  for (int i=0; i<num_of_products; ++i) {
-    int id, w;
-    fscanf(product_file, "%d,%d", &id, &w);
-    p_weight[id]=w;
-  }
-  fclose(product_file);
 
 
   FILE *aggregate_file;
@@ -513,7 +536,7 @@ int main(int argc, char* argv[]) {
   hash<int> int_hash;
 
   cout << "File Scan Resume:\n";
-  ofstream valid_file; if (!write_ffm && !write_ffm_s && read_knn) valid_file.open("valid.bin", ios::out | ios::binary);
+  ofstream valid_file; if (write_final) valid_file.open("valid.bin", ios::out | ios::binary);
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te2; if (write_ffm) ffm_te2.open("ffm_te2.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
@@ -543,7 +566,7 @@ int main(int argc, char* argv[]) {
     }
     if (Semana == valid_month && use_valid) {      
       float tmp, tmp2;
-      if (!write_ffm && !write_ffm_s && read_knn) {
+      if (write_final) {
 	// write regular features
 	{
 	  prepare_features(valid_file, valid_month, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
@@ -601,7 +624,7 @@ int main(int argc, char* argv[]) {
     t_count ++;
   }
   while (t_count < max_count);
-  if (!write_ffm && !write_ffm_s && read_knn)  valid_file.close();
+  if (write_final)  valid_file.close();
   if(write_ffm) {  ffm_te.close();   ffm_te2.close(); }
   if(write_ffm_s) {  ffm_te_s.close();   ffm_te2_s.close(); }
   if(!write_ffm && ffm_te_pred_s.is_open() && ffm_te_pred_recent.is_open()) 
@@ -615,11 +638,10 @@ int main(int argc, char* argv[]) {
   if (!use_valid) {
   /* write submit files */
   ofstream submit_file;
-  if (!write_ffm && !write_ffm_s && read_knn) 
+  if (write_final) 
     { submit_file.open("test_feature.bin", ios::out | ios::binary);}
   ifstream test_file_bin; test_file_bin.open("/home/jxy198/kaggle-inventory/cxx/test.bin", ios::binary); assert(test_file_bin);
   count = 1; 
-  max_count = 6999252;
   cout << "Write Test Submit:\n";
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
@@ -628,7 +650,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
   ifstream knn_te_pred; if (read_knn) knn_te_pred.open("knn_te_pred.txt");
-  while (count < max_count) {
+  while (count < test_max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     float tmp, tmp2;
     test_file_bin.read((char*) &id, sizeof(int));
@@ -639,7 +661,7 @@ int main(int argc, char* argv[]) {
     test_file_bin.read((char*) &Cliente_ID, sizeof(int));
     test_file_bin.read((char*) &Producto_ID, sizeof(int));
 
-    if (!write_ffm && !write_ffm_s && read_knn) {
+    if (write_final) {
 
     prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
@@ -668,12 +690,12 @@ int main(int argc, char* argv[]) {
       write_ffm_data(ffm_te_s, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count_s);
     }
 
-    if (count % 10000 == 0 || count == max_count-1) {
-      prt_progress_bar((float) count / (float) (max_count-1));
+    if (count % 10000 == 0 || count == test_max_count-1) {
+      prt_progress_bar((float) count / (float) (test_max_count-1));
     } 
     count++;
   }  
-  if (!write_ffm && !write_ffm_s && read_knn) submit_file.close();
+  if (write_final) submit_file.close();
   test_file_bin.close();
   if(write_ffm) {  ffm_te.close(); }
   if(write_ffm_s) {  ffm_te_s.close(); }
