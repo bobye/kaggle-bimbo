@@ -1,16 +1,18 @@
 import xgboost as xgb
 import numpy as np
 import pandas as pd
-from sklearn.cross_validation import LabelKFold
 
 task='train' # {'train','cv','predict'}
 is_final=False
-has_history=False
-num_round=132
+num_round=109
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':8, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':10, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 model_name='0003.model'
-select=[0,1,2,3,4]
+select=np.arange(5, 30) #model0
+#select=np.arange(5, 26) #model1
+#select=np.arange(18,30) #model2
+#select=[17, 19, 20, 21, 22, 23, 24, 25, 28] #model3
+#select=np.arange(0, 5)
 
 print param
 # def myobj(preds, dtrain):
@@ -26,13 +28,17 @@ print param
 #     preds = np.maximum(preds, 0)
 #     return 'error', np.sqrt(((preds - labels) ** 2).mean())
 
-def get_data(filename, size):
+def get_data(filename, size, has_history = None, reweight = None):
     "read training data from .bin file"
     print 'start to load training data ... '
     valid_data = np.fromfile(filename, dtype=np.float32)
     valid_data = np.reshape(valid_data, (size, len(valid_data)/size))
     if has_history:
-        valid_data=valid_data[valid_data[:,0]!=-999]
+        valid_data=valid_data[valid_data[:,5]!=-999]
+    weights = None
+    if reweight:
+        weights = np.ones(size)
+        weights[valid_data[:,5]==-999] = reweight
     ## down-sample data for local run
     # valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)] 
     data=valid_data[:,0:(valid_data.shape[1]-1)]
@@ -42,21 +48,12 @@ def get_data(filename, size):
     del valid_data
 
     print 'prepare training'
-    dtrain = xgb.DMatrix(data, label=np.log(label+1), missing = -999.0)
+    dtrain = xgb.DMatrix(data, label=np.log(label+1), weight=weights, missing = -999.0)
     return dtrain
 
 if task == 'train':
-    dtrain=get_data('valid8_cache/valid.bin', 10406868);
-    dvalid=get_data('valid9_cache/valid.bin', 10408713);
-
-if task == 'cv':
-    print 'start cv'
-    cv_folds = np.loadtxt("folds.txt")
-    label_kfold = LabelKFold(cv_folds, max(cv_folds)+1)
-    res = xgb.cv(param, dtrain, num_boost_round=300, folds=label_kfold,
-                 seed = 0,
-                 callbacks=[xgb.callback.print_evaluation(show_stdv=False),
-                            xgb.callback.early_stop(3)])
+    dtrain=get_data('valid81_cache/valid.bin', 10406868)
+    dvalid=get_data('valid91_cache/valid.bin', 10408713)
 
 if task == 'train':
     if is_final:
@@ -65,15 +62,16 @@ if task == 'train':
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
                         num_boost_round = 1000, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=3)
+                        evals=watchlist, early_stopping_rounds=10)
     print bst.get_fscore()
     pred = bst.predict(dvalid)
     label = dvalid.get_label()
     np.savetxt('errors.txt', np.concatenate((pred, label-pred)).reshape((2,len(label))).T, fmt='%.5f')
-    bst.save_model(model_name);
+    bst.save_model(model_name)
+    bst.dump_model('xgb.dump', with_stats=True)
 
 if (task == 'train' and is_final) or (task == 'predict'):
-    test_data = np.fromfile("test_feature.bin", dtype=np.float32);    
+    test_data = np.fromfile("test1_cache/test_feature.bin", dtype=np.float32);    
     test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
     if select is not None:
         test_data = test_data[:, select]
