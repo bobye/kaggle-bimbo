@@ -206,12 +206,14 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
   }
 
   {
-    float meta=MISSING;
+    float meta[3]={MISSING, MISSING, MISSING};
     auto itr= p_meta.find(Producto_ID);
     if (itr != p_meta.end()) {
-      meta=get<0>(itr->second); // max(get<0>(itr->second), get<1>(itr->second)); 
+      meta[0]=get<0>(itr->second);
+      meta[1]=get<1>(itr->second);
+      meta[2]=get<2>(itr->second);
     }
-    out.write((char*) &meta, sizeof(float));
+    out.write((char*) meta, sizeof(meta));
     float w;
     if (p_popularity.find(Producto_ID) != p_popularity.end()) w=log(p_popularity[Producto_ID]+1); 
     else w=MISSING;

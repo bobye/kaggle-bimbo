@@ -73,7 +73,7 @@ if task == 'train':
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
                         num_boost_round = 1000, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=10)
+                        evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
     pred = bst.predict(dvalid)
     label = dvalid.get_label()
