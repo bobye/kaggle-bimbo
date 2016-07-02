@@ -6,7 +6,7 @@
 2. blur of history => parameter risk
 3. use public leaderboard scores to validate the two effects!
 
-## run cross validation
+## How to run
 ```
 ./run_ffm.sh
 ./run_knn.sh
