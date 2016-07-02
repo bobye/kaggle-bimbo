@@ -11,16 +11,16 @@ param = {'max_depth':10, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree
 
 if model==0:
     model_name='0000.model'
-    select=np.arange(5, 28)
+    select=np.arange(5, 30)
 elif model==1:
     model_name='0001.model'
-    select=np.arange(5, 24) #model1: without ffm features
+    select=np.arange(5, 26) #model1: without ffm features
 elif model==2:
     model_name='0002.model'
-    select=np.arange(18,28) #model2: (almost) without history orders
+    select=np.arange(18,30) #model2: (almost) without history orders
 elif model==3:
     model_name='0003.model'
-    select=[17, 19, 20, 21, 22, 23, 26] #model3: no client identities
+    select=[17, 19, 20, 21, 22, 23, 24, 25, 28] #model3: no client identities
 else:
     model_name='raw_id.model'
     select=np.arange(0, 5) # use the raw id as features
