@@ -2,9 +2,9 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='train' # {'train','cv','predict'}
+task='train' # {'train','validate','predict'}
 is_final=False
-num_round=109
+num_round=112
 model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':10, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
@@ -62,14 +62,17 @@ def get_data(filename, size, has_history = None, reweight = None):
     dtrain = xgb.DMatrix(data, label=np.log(label+1), weight=weights, missing = -999.0)
     return dtrain
 
-if task == 'train':
+if task == 'train' or task == 'validate':
     dtrain=get_data('valid81_cache/valid.bin', 10406868)
     dvalid=get_data('valid91_cache/valid.bin', 10408713)
 
-if task == 'train':
-    if is_final:
-        bst = xgb.train(param, dvalid, num_boost_round=num_round, verbose_eval=True);
-    else:
+if task == 'train' or task == 'validate':
+    if task == 'train':
+        watchlist=[(dvalid, 'train'), (dtrain, 'eval')]
+        bst = xgb.train(param, dvalid, 
+			num_boost_round=num_round, verbose_eval=True,
+			evals=watchlist)
+    elif task == 'validate':
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
                         num_boost_round = 1000, verbose_eval=True,
@@ -82,7 +85,10 @@ if task == 'train':
     bst.dump_model('xgb.dump', with_stats=True)
 
 if (task == 'train' and is_final) or (task == 'predict'):
-    test_data = np.fromfile("test1_cache/test_feature.bin", dtype=np.float32);    
+    if is_final:
+        test_data = np.fromfile("test0_cache/test_feature.bin", dtype=np.float32);    
+    else:
+        test_data = np.fromfile("test1_cache/test_feature.bin", dtype=np.float32);
     test_data = np.reshape(test_data, (6999251, len(test_data)/6999251));
     if select is not None:
         test_data = test_data[:, select]
