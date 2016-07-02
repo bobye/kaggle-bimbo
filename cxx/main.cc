@@ -209,7 +209,7 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
     float meta=MISSING;
     auto itr= p_meta.find(Producto_ID);
     if (itr != p_meta.end()) {
-      meta=max(get<0>(itr->second), get<1>(itr->second)); 
+      meta=get<0>(itr->second); // max(get<0>(itr->second), get<1>(itr->second)); 
     }
     out.write((char*) &meta, sizeof(float));
     float w;
