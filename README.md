@@ -4,7 +4,9 @@
 
 1. one-period-ahead forecast != two-period-ahead forecast
 2. blur of history => parameter risk
-3. use public leaderboard scores to validate the two effects!
+3. overfit validation period => high model complexity
+
+Use public leaderboard scores wisely to observe those effects and make scientific judgements!
 
 ## How to run
 ```
