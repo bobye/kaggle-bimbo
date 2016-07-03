@@ -2,12 +2,12 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='train' # {'train','validate','predict'}
+task='validate' # {'train','validate','predict'}
 is_final=False
 num_round=112
 model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':10, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':10, 'eta':0.05, 'gamma':15., 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 
 if model==0:
     model_name='0000.model'
@@ -76,7 +76,7 @@ if task == 'train' or task == 'validate':
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
                         num_boost_round = 1000, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=3)
+                        evals=watchlist, early_stopping_rounds=1)
     print bst.get_fscore()
     pred = bst.predict(dvalid)
     label = dvalid.get_label()
