@@ -65,25 +65,19 @@ inline void prt_progress_bar(float progress) {
 inline unsigned char get_historical_data(size_t jj, float *historical_data, int current_month) {
   int n=0, count_month=0, month=-1;
   unsigned char histo = 0;
-  historical_data[0]=0;
+  historical_data[0]=0; historical_data[n+6]=0;
   while (jj != 0 && n <6) {
     if (months[jj] != month && month!=-1) {
-      historical_data[n]/=count_month; 
-      historical_data[n+6]/=count_month; 
+      historical_data[n]/=count_month; historical_data[n+6]/=count_month; 
       n++; if (n>=6) break;
       count_month=0;
-      historical_data[n] = 0;
+      historical_data[n] = 0; historical_data[n+6] = 0;
     }; 
     month = months[jj];
     histo |= 1 << (month - (current_month - 6));
     count_month++;
-    historical_data[n] += log(sales[jj]+1);
-    historical_data[n+6] += log(returns[jj]+1);
+    historical_data[n] += log(sales[jj]+1); historical_data[n+6] += log(returns[jj]+1);
     jj=next_id[jj];    
-  }
-  for (; jj!=0&&n<6; ++n) {
-    historical_data[n] = MISSING;
-    historical_data[n+6] = MISSING;
   }
   return histo;
 }
