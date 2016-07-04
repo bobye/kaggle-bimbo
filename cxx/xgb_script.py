@@ -2,22 +2,23 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='validate' # {'train','validate','predict'}
+task='train' # {'train','validate','predict'}
 is_final=False
-num_round=112
+num_round=90
 model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':10, 'eta':0.05, 'gamma':15., 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':7, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 
 if model==0:
     model_name='0000.model'
-    select=np.arange(5, 30)
+    #select=np.concatenate((np.arange(5,23), np.arange(25,31))) 
+    select=np.arange(5, 31)
 elif model==1:
     model_name='0001.model'
     select=np.arange(5, 26) #model1: without ffm features
 elif model==2:
     model_name='0002.model'
-    select=np.arange(18,30) #model2: (almost) without history orders
+    select=np.arange(18,31) #model2: (almost) without history orders
 elif model==3:
     model_name='0003.model'
     select=[17, 19, 20, 21, 22, 23, 24, 25, 28] #model3: no client identities
@@ -53,6 +54,10 @@ def get_data(filename, size, has_history = None, reweight = None):
     ## down-sample data for local run
     # valid_data = valid_data[np.random.choice(valid_data.shape[0], 100000)] 
     data=valid_data[:,0:(valid_data.shape[1]-1)]
+    ## add noise to dim 24
+    # addnoise=data[:,24] != -999
+    # noise=np.random.normal(0,1,np.sum(addnoise))
+    # data[addnoise,24] += noise
     label=valid_data[:,valid_data.shape[1]-1]
     if select is not None:
         data=data[:,select]
@@ -67,11 +72,16 @@ if task == 'train' or task == 'validate':
     dvalid=get_data('valid91_cache/valid.bin', 10408713)
 
 if task == 'train' or task == 'validate':
-    if task == 'train':
+    if task == 'train' and is_final:
         watchlist=[(dvalid, 'train'), (dtrain, 'eval')]
         bst = xgb.train(param, dvalid, 
-			num_boost_round=num_round, verbose_eval=True,
+			num_boost_round = num_round, verbose_eval=True,
 			evals=watchlist)
+    elif task == 'train' and !is_final:
+        watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
+        bst = xgb.train(param, dtrain,
+                        num_boost_round = num_round, verbose_eval=True,
+                        evals=watchlist, early_stopping_rounds=1)
     elif task == 'validate':
         watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
         bst = xgb.train(param, dtrain,
