@@ -58,7 +58,9 @@ if task == 'train' or task == 'validate':
 if task == 'train' or task == 'validate':
     rf=RandomForestRegressor(n_estimators=30, n_jobs=24, min_samples_leaf=10, random_state=0, verbose=1)
     if task == 'train' and is_final:        
+        print 'skip'
     elif task == 'train' and not is_final:
+        print 'skip'
     elif task == 'validate':
         rf.fit(dX71, dy71)
         dy91_pred=rf.predict(dX91)
