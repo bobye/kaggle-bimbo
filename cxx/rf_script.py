@@ -56,7 +56,7 @@ if task == 'train' or task == 'validate':
     dX91, dy91=get_data('valid91_cache/valid.bin', 10408713)
 
 if task == 'train' or task == 'validate':
-    rf=RandomForestRegressor(n_estimators=30, n_jobs=24, min_samples_leaf=10, random_state=0, verbose=1)
+    rf=RandomForestRegressor(n_estimators=30, n_jobs=24, min_samples_leaf=10, random_state=0, verbose=2)
     if task == 'train' and is_final:        
         rf.fit(dX91, dy91)
     elif task == 'train' and not is_final:
