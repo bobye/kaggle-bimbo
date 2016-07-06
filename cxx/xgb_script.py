@@ -2,17 +2,17 @@ import xgboost as xgb
 import numpy as np
 import pandas as pd
 
-task='train' # {'train','validate','predict'}
+task='validate' # {'train','validate','predict'}
 is_final=False
-num_round=90
+num_round=81+1
 model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':7, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':6, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 
 if model==0:
     model_name='0000.model'
-    #select=np.concatenate((np.arange(5,23), np.arange(25,31))) 
-    select=np.arange(5, 31)
+    select=np.concatenate((np.arange(5,23), np.arange(25,30))) 
+    #select=np.arange(5, 30)
 elif model==1:
     model_name='0001.model'
     select=np.arange(5, 26) #model1: without ffm features
@@ -68,33 +68,34 @@ def get_data(filename, size, has_history = None, reweight = None):
     return dtrain
 
 if task == 'train' or task == 'validate':
-    dtrain=get_data('valid81_cache/valid.bin', 10406868)
-    dvalid=get_data('valid91_cache/valid.bin', 10408713)
+    dtrain71=get_data('valid71_cache/valid.bin', 10382849)
+    dtrain81=get_data('valid81_cache/valid.bin', 10406868)
+    dtrain91=get_data('valid91_cache/valid.bin', 10408713)
 
 if task == 'train' or task == 'validate':
     if task == 'train' and is_final:
-        watchlist=[(dvalid, 'train'), (dtrain, 'eval')]
-        bst = xgb.train(param, dvalid, 
+        watchlist=[(dtrain91, 'train')]
+        bst = xgb.train(param, dtrain91, 
 			num_boost_round = num_round, verbose_eval=True,
 			evals=watchlist)
-    elif task == 'train' and !is_final:
-        watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
-        bst = xgb.train(param, dtrain,
+    elif task == 'train' and not is_final:
+        watchlist=[(dtrain81, 'train'), (dtrain91, 'eval')]
+        bst = xgb.train(param, dtrain81,
                         num_boost_round = num_round, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=1)
+                        evals=watchlist, early_stopping_rounds=3)
     elif task == 'validate':
-        watchlist=[(dtrain, 'train'), (dvalid, 'eval')]
-        bst = xgb.train(param, dtrain,
+        watchlist=[(dtrain71, 'train'), (dtrain91, 'eval')]
+        bst = xgb.train(param, dtrain71,
                         num_boost_round = 1000, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=1)
+                        evals=watchlist, early_stopping_rounds=3)
     print bst.get_fscore()
-    pred = bst.predict(dvalid)
-    label = dvalid.get_label()
-    np.savetxt('errors.txt', np.concatenate((pred, label-pred)).reshape((2,len(label))).T, fmt='%.5f')
+#    pred = bst.predict(dvalid)
+#    label = dvalid.get_label()
+#    np.savetxt('errors.txt', np.concatenate((pred, label-pred)).reshape((2,len(label))).T, fmt='%.5f')
     bst.save_model(model_name)
     bst.dump_model('xgb.dump', with_stats=True)
 
-if (task == 'train' and is_final) or (task == 'predict'):
+if task == 'predict':
     if is_final:
         test_data = np.fromfile("test0_cache/test_feature.bin", dtype=np.float32);    
     else:
