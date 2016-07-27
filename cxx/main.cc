@@ -268,9 +268,12 @@ void read_product_meta() {
   product_file = fopen("/home/jxy198/kaggle-inventory/cxx/product_meta.csv", "r");
   if (product_file == NULL)
     exit(EXIT_FAILURE);
-  for (int i=0; i<num_of_products; ++i) {
+  for (int i=0, j=0; i<num_of_products; ++i) {
     int id, w, v, bc;
     fscanf(product_file, "%d,%d,%d,%d", &id, &w, &v, &bc);
+
+    // bc is replaced with prom boolean
+    if (id == product_prom[j] && j<204) { j++; bc=1; } else {bc = 0;}
     p_meta[id]=make_tuple((float)w, (float)v, (float)bc);
   }
   fclose(product_file);
