@@ -14,6 +14,7 @@
 #include <math.h>
 #include <assert.h>
 #include "auxilary.hh"
+#include <array>
 
 #define MISSING (-999)
 
@@ -36,7 +37,7 @@ std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > produ
 std::unordered_map<int, std::tuple<float, float, float>> p_meta;
 
 // <Producto_ID> => count
-std::unordered_map<int, float> p_popularity;
+std::unordered_map<int, std::array<float, 6>> p_popularity;
 
 // <field, ID> => index
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
@@ -208,10 +209,11 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
       meta[2]=get<2>(itr->second);
     }
     out.write((char*) meta, sizeof(meta));
-    float w;
-    if (p_popularity.find(Producto_ID) != p_popularity.end()) w=log(p_popularity[Producto_ID]+1); 
-    else w=MISSING;
-    out.write((char*)&w, sizeof(float));    
+    std::array<float, 6> w = {MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+    if (p_popularity.find(Producto_ID) != p_popularity.end()) {
+      w=p_popularity[Producto_ID];
+    }
+    out.write((char*)&w[0], sizeof(float)* 6);    
   }
 }
 
@@ -421,9 +423,11 @@ int main(int argc, char* argv[]) {
       auto itr = p_popularity.find(Producto_ID);
       if (use_valid || Semana > 3) {
 	if (itr == p_popularity.end()) {
-	  p_popularity[Producto_ID] = Demanda_uni_equil;
+	  std::array<float, 6> init={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+	  p_popularity[Producto_ID] = init;
+	  p_popularity[Producto_ID][valid_month - Semana - offset] = Demanda_uni_equil;
 	} else {
-	  p_popularity[Producto_ID] += Demanda_uni_equil;
+	  p_popularity[Producto_ID][valid_month - Semana - offset] += Demanda_uni_equil;
 	}
       }
     }
