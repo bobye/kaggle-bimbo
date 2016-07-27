@@ -213,6 +213,10 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
     if (p_popularity.find(Producto_ID) != p_popularity.end()) {
       w=p_popularity[Producto_ID];
     }
+    w[0] = log(w[0]+1);
+    w[1] = log(w[1]+1);
+    w[1] = w[0] - w[1];
+
     out.write((char*)&w[0], sizeof(float));
     out.write((char*)&w[1], sizeof(float));
   }
