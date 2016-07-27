@@ -37,7 +37,7 @@ std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > produ
 std::unordered_map<int, std::tuple<float, float, float>> p_meta;
 
 // <Producto_ID> => count
-std::unordered_map<int, std::array<float, 6>> p_popularity;
+std::unordered_map<int, std::array<float, 2>> p_popularity;
 
 // <field, ID> => index
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
@@ -209,11 +209,12 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
       meta[2]=get<2>(itr->second);
     }
     out.write((char*) meta, sizeof(meta));
-    std::array<float, 6> w = {MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+    std::array<float, 2> w = {MISSING, MISSING};
     if (p_popularity.find(Producto_ID) != p_popularity.end()) {
       w=p_popularity[Producto_ID];
     }
-    out.write((char*)&w[0], sizeof(float)* 6);    
+    out.write((char*)&w[0], sizeof(float));
+    out.write((char*)&w[1], sizeof(float));
   }
 }
 
@@ -423,11 +424,16 @@ int main(int argc, char* argv[]) {
       auto itr = p_popularity.find(Producto_ID);
       if (use_valid || Semana > 3) {
 	if (itr == p_popularity.end()) {
-	  std::array<float, 6> init={MISSING, MISSING, MISSING, MISSING, MISSING, MISSING};
+	  std::array<float, 2> init={MISSING, MISSING};
 	  p_popularity[Producto_ID] = init;
-	  p_popularity[Producto_ID][valid_month - Semana - offset] = Demanda_uni_equil;
+	  p_popularity[Producto_ID][0] = Demanda_uni_equil;
+	  p_popularity[Producto_ID][1] = 0;
+	  if (Semana == (valid_month - offset - 1))
+	    p_popularity[Producto_ID][1] = Demanda_uni_equil;
 	} else {
-	  p_popularity[Producto_ID][valid_month - Semana - offset] += Demanda_uni_equil;
+	  p_popularity[Producto_ID][0] += Demanda_uni_equil;
+	  if (Semana == (valid_month - offset - 1))
+	    p_popularity[Producto_ID][1] += Demanda_uni_equil;
 	}
       }
     }
