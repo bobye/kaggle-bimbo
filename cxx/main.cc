@@ -37,7 +37,7 @@ std::unordered_map<std::tuple<int, int>, std::tuple<float, float, float> > produ
 std::unordered_map<int, std::tuple<float, float, float>> p_meta;
 
 // <Producto_ID> => count
-std::unordered_map<int, std::array<float, 2>> p_popularity;
+std::unordered_map<int, float> p_popularity;
 
 // <field, ID> => index
 std::unordered_map<std::tuple<char, int>, size_t> feat_index;
@@ -209,16 +209,12 @@ void prepare_features(std::ofstream &out, int Semana, int Cliente_ID, int Produc
       meta[2]=get<2>(itr->second);
     }
     out.write((char*) meta, sizeof(meta));
-    std::array<float, 2> w = {MISSING, MISSING};
+    float w = MISSING;
     if (p_popularity.find(Producto_ID) != p_popularity.end()) {
-      w=p_popularity[Producto_ID];
-      w[0] = log(w[0]+1);
-      w[1] = log(w[1]+1);
-      w[1] = w[0] - w[1];      
+      w=log(p_popularity[Producto_ID]+1);
     }
 
-    out.write((char*)&w[0], sizeof(float));
-    out.write((char*)&w[1], sizeof(float));
+    out.write((char*)&w, sizeof(float));
   }
 }
 
@@ -428,16 +424,9 @@ int main(int argc, char* argv[]) {
       auto itr = p_popularity.find(Producto_ID);
       if (use_valid || Semana > 3) {
 	if (itr == p_popularity.end()) {
-	  std::array<float, 2> init={MISSING, MISSING};
-	  p_popularity[Producto_ID] = init;
-	  p_popularity[Producto_ID][0] = Demanda_uni_equil;
-	  p_popularity[Producto_ID][1] = 0;
-	  if (Semana == (valid_month - offset - 1))
-	    p_popularity[Producto_ID][1] = Demanda_uni_equil;
+	  p_popularity[Producto_ID] = Demanda_uni_equil;
 	} else {
-	  p_popularity[Producto_ID][0] += Demanda_uni_equil;
-	  if (Semana == (valid_month - offset - 1))
-	    p_popularity[Producto_ID][1] += Demanda_uni_equil;
+	  p_popularity[Producto_ID] += Demanda_uni_equil;
 	}
       }
     }
@@ -598,7 +587,6 @@ int main(int argc, char* argv[]) {
 	if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
 	  knn_te_pred >> tmp >> tmp2;
 	  valid_file.write((char*) &tmp, sizeof(float));
-	  valid_file.write((char*) &tmp2, sizeof(float));
 	  eenn_te_pred >> tmp;
 	  valid_file.write((char*) &tmp, sizeof(float));
 	}
@@ -692,7 +680,6 @@ int main(int argc, char* argv[]) {
     if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
       knn_te_pred >> tmp >> tmp2;
       submit_file.write((char*) &tmp, sizeof(float));
-      submit_file.write((char*) &tmp2, sizeof(float));
       eenn_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
     }
