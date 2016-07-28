@@ -276,7 +276,7 @@ void read_product_meta() {
     fscanf(product_file, "%d,%d,%d,%d", &id, &w, &v, &bc);
 
     // bc is replaced with prom boolean
-    if (id == product_prom[j] && j<204) { j++; bc=1; } else {bc = 0;}
+    //    if (id == product_prom[j] && j<204) { j++; bc=1; } else {bc = 0;}
     p_meta[id]=make_tuple((float)w, (float)v, (float)bc);
   }
   fclose(product_file);
