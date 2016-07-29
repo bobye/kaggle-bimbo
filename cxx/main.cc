@@ -576,8 +576,9 @@ int main(int argc, char* argv[]) {
 	// write different ffm features
 	if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
 	  ffm_te_pred >> tmp;
+	  ffm_te_pred_recent >> tmp2;
+	  tmp -= tmp2;
 	  valid_file.write((char*) &tmp, sizeof(float));
-	  ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
 	  valid_file.write((char*) &tmp2, sizeof(float));
 	}
 	if (!write_ffm_s && ffm_te_pred_s.is_open()) {
@@ -669,8 +670,9 @@ int main(int argc, char* argv[]) {
     prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
       ffm_te_pred >> tmp;
+      ffm_te_pred_recent >> tmp2;
+      tmp -= tmp2;
       submit_file.write((char*) &tmp, sizeof(float));
-      ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
       submit_file.write((char*) &tmp2, sizeof(float));
     }
     if (!write_ffm_s && ffm_te_pred_s.is_open()) {
