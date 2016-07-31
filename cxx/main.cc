@@ -601,6 +601,10 @@ int main(int argc, char* argv[]) {
 	if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
 	  knn_te_pred >> tmp >> tmp2;
 	  valid_file.write((char*) &tmp, sizeof(float));
+	  knn_te_pred >> tmp >> tmp2;
+	  valid_file.write((char*) &tmp, sizeof(float));
+	  knn_te_pred >> tmp >> tmp2;
+	  valid_file.write((char*) &tmp, sizeof(float));
 	  eenn_te_pred >> tmp;
 	  valid_file.write((char*) &tmp, sizeof(float));
 	}
@@ -703,6 +707,11 @@ int main(int argc, char* argv[]) {
     if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
       knn_te_pred >> tmp >> tmp2;
       submit_file.write((char*) &tmp, sizeof(float));
+      knn_te_pred >> tmp >> tmp2;
+      submit_file.write((char*) &tmp, sizeof(float));
+      knn_te_pred >> tmp >> tmp2;
+      submit_file.write((char*) &tmp, sizeof(float));
+      
       eenn_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
     }
