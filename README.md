@@ -12,6 +12,9 @@ Use public leaderboard scores wisely to observe those effects and make scientifi
 ```
 ./run_ffm.sh
 ./run_knn.sh
+./ffm2eenn tr
+./ffm2eenn te
+./run_eenn.sh
 
 cp client.csv client_ro.csv
 

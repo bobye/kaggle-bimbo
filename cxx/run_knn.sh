@@ -1,10 +1,9 @@
 #!/bin/bash
 
-#SBATCH -p shared
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=24
 #SBATCH -t 24:00:00
-#SBATCH --mem=32gb
+#SBATCH --mem=100gb
 
 
 
@@ -13,7 +12,15 @@ module load gsl
 
 PHOME=/home/jxy198/kaggle-inventory
 
-cd $PHOME/cxx/test1_cache
-
 echo "Start KNN!"
-python $PHOME/cxx/knn_script.py
+
+#cd $PHOME/cxx/valid71_cache
+#python $PHOME/cxx/knn_script.py &
+cd $PHOME/cxx/valid80_cache
+python $PHOME/cxx/knn_script.py	&
+cd $PHOME/cxx/valid90_cache
+python $PHOME/cxx/knn_script.py	&
+cd $PHOME/cxx/test0_cache
+python $PHOME/cxx/knn_script.py	&
+
+wait

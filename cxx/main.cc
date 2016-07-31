@@ -302,17 +302,20 @@ int main(int argc, char* argv[]) {
   assert(argc == 3);
 
   /* parameter for validation setup */
+  if (argv[1][1] == '0'+1) offset=1;
+
   if (argv[1][0] >= '0' && argv[1][0] <='9')  {
     use_valid = true;
     valid_month = argv[1][0] - '0';
   }
   else if (argv[1][0] == 't')  { 
     use_valid = false;
-    valid_month = 10;
+    valid_month = 11 - offset;
   }
   else assert(false);
 
-  if (argv[1][1] == '0'+1) offset=1;
+
+  
 
   /* parameter for feature setup */
   if (argv[2][0] == 'w') write_ffm = true;
@@ -377,7 +380,7 @@ int main(int argc, char* argv[]) {
     train_file_bin.read( (char*) &Demanda_uni_equil, sizeof(int) );
     
     
-    if (Semana == (valid_month - offset)) break;
+    if (Semana == valid_month - 1) break;
 
     months[t_count]= Semana;
     demands[t_count] = Demanda_uni_equil;
@@ -422,7 +425,7 @@ int main(int argc, char* argv[]) {
 
     {
       auto itr = p_popularity.find(Producto_ID);
-      if (use_valid || Semana > 3) {
+      if (Semana > valid_month - 6) {
 	if (itr == p_popularity.end()) {
 	  p_popularity[Producto_ID] = Demanda_uni_equil;
 	} else {
@@ -542,10 +545,10 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
   ofstream ffm_te2_s; if (write_ffm_s) ffm_te2_s.open("ffm_te2.s.txt");
 
-  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
-  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.60.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.60.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
-  ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.txt");
+  ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.60.txt");
   ifstream eenn_te_pred; if(read_rest) eenn_te_pred.open("nn_te_pred.txt");
   bool first_line_valid=true;
   do {
@@ -576,8 +579,7 @@ int main(int argc, char* argv[]) {
 	// write different ffm features
 	if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
 	  ffm_te_pred >> tmp;
-	  ffm_te_pred_recent >> tmp2;
-	  tmp -= tmp2;
+	  ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
 	  valid_file.write((char*) &tmp, sizeof(float));
 	  valid_file.write((char*) &tmp2, sizeof(float));
 	}
@@ -649,10 +651,10 @@ int main(int argc, char* argv[]) {
   ofstream ffm_te; if (write_ffm) ffm_te.open("ffm_te.txt");
   ofstream ffm_te_s; if (write_ffm_s) ffm_te_s.open("ffm_te.s.txt");
 
-  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.txt");
-  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.txt");
+  ifstream ffm_te_pred; if (!write_ffm) ffm_te_pred.open("ffm_te_pred.60.txt");
+  ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.60.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
-  ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.txt");
+  ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.60.txt");
   ifstream eenn_te_pred; if (read_rest) eenn_te_pred.open("nn_te_pred.txt");
   while (count < test_max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
@@ -667,11 +669,10 @@ int main(int argc, char* argv[]) {
 
     if (write_final) {
 
-    prepare_features(submit_file, 10, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
+    prepare_features(submit_file, valid_month, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK);
     if (!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) {
       ffm_te_pred >> tmp;
-      ffm_te_pred_recent >> tmp2;
-      tmp -= tmp2;
+      ffm_te_pred_recent >> tmp2; tmp2 -= tmp;
       submit_file.write((char*) &tmp, sizeof(float));
       submit_file.write((char*) &tmp2, sizeof(float));
     }

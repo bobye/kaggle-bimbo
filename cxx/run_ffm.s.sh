@@ -16,11 +16,11 @@ module load gnutools
 PHOME=/home/jxy198/kaggle-inventory
 
 echo "Start Feature Eng!"
-cd $PHOME/cxx/valid81_cache
-cp client.csv client_ro.csv
-$PHOME/cxx/main 81 rwr
+cd $PHOME/cxx/valid80_cache
+#cp client.csv client_ro.csv
+#$PHOME/cxx/main 71 rwr
 
 k=2
 echo "Start FFM k=$k"
-$PHOME/libffm-regression/ffm-train -t 20 -r 0.0027 -k $k --auto-stop -p ffm_te2.s.txt ffm_tr.s.txt ffm_k${k}_sel.s.txt
-$PHOME/libffm-regression/ffm-predict ffm_te.s.txt ffm_k${k}_sel.s.txt ffm_te_pred.s.txt > /tmp/null
+$PHOME/libffm-regression-bak/ffm-train -t 10 -r 0.002 -k $k ffm_tr.s.txt ffm_k${k}_sel.s.txt
+$PHOME/libffm-regression-bak/ffm-predict ffm_te.s.txt ffm_k${k}_sel.s.txt ffm_te_pred.s.txt > /tmp/null

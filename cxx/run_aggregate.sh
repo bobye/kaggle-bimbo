@@ -12,16 +12,21 @@ export PYTHONPATH=$PYTHONPATH:/home/jxy198/xgboost/python-package
 module load gsl
 PHOME=/home/jxy198/kaggle-inventory
 
+offset=1
+
 echo "Start Feature Eng!"
 time {
-cd $PHOME/cxx/valid81_cache
-$PHOME/cxx/main 81 rrr &
+#cd $PHOME/cxx/valid7${offset}_cache
+#$PHOME/cxx/main 7${offset} rrr &
 
-cd $PHOME/cxx/valid91_cache
-$PHOME/cxx/main 91 rrr &
+cd $PHOME/cxx/valid8${offset}_cache
+$PHOME/cxx/main 8${offset} rrr &
 
-cd $PHOME/cxx/test1_cache
-$PHOME/cxx/main t1 rrr &
+cd $PHOME/cxx/valid9${offset}_cache
+$PHOME/cxx/main 9${offset} rrr &
+
+cd $PHOME/cxx/test${offset}_cache
+$PHOME/cxx/main t${offset} rrr &
 
 wait
 }

@@ -4,7 +4,6 @@ import pandas as pd
 
 task='validate' # {'train','validate','predict'}
 is_final=False
-num_round=81+1
 model=0
 
 if model==0:
@@ -56,7 +55,7 @@ if task == 'train' or task == 'validate':
     dX91, dy91=get_data('valid91_cache/valid.bin', 10408713)
 
 if task == 'train' or task == 'validate':
-    rf=RandomForestRegressor(n_estimators=30, n_jobs=24, min_samples_leaf=10, random_state=0, verbose=2)
+    rf=RandomForestRegressor(n_estimators=100, n_jobs=24, min_samples_leaf=100, random_state=0, verbose=1)
     if task == 'train' and is_final:        
         rf.fit(dX91, dy91)
     elif task == 'train' and not is_final:
@@ -64,11 +63,11 @@ if task == 'train' or task == 'validate':
         dy91_pred=rf.predict(dX91)
         print np.sqrt(np.mean((dy91_pred - dy91)**2))
     elif task == 'validate':
-        rf.fit(dX71, dy71)
+        rf.fit(dX81, dy81)
         dy91_pred=rf.predict(dX91)
         print np.sqrt(np.mean((dy91_pred - dy91)**2))
 
-if task == 'predict' or task == 'train':
+if task == 'train':
     if is_final:
         test_data = np.fromfile("test0_cache/test_feature.bin", dtype=np.float32);    
     else:
