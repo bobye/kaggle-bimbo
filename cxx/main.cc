@@ -75,7 +75,8 @@ inline unsigned char get_historical_data(size_t jj, float *historical_data, int 
       historical_data[n] = 0; historical_data[n+6] = 0;
     }; 
     month = months[jj];
-    histo |= 1 << (month - (current_month - 6));
+    if ((month - (current_month - 6)) >= 0)
+      histo |= 1 << (month - (current_month - 6));
     count_month++;
     historical_data[n] += log(sales[jj]+1); historical_data[n+6] += log(returns[jj]+1);
     jj=next_id[jj];    
