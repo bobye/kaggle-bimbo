@@ -16,7 +16,7 @@ module load gnutools
 PHOME=/home/jxy198/kaggle-inventory
 
 echo "Start Feature Eng!"
-cd $PHOME/cxx/valid80_cache
+cd $PHOME/cxx/valid81_cache
 #cp client.csv client_ro.csv
 #$PHOME/cxx/main 71 rwr
 

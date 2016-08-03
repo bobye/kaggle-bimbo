@@ -16,11 +16,11 @@ echo "Start KNN!"
 
 #cd $PHOME/cxx/valid71_cache
 #python $PHOME/cxx/knn_script.py &
-cd $PHOME/cxx/valid80_cache
+cd $PHOME/cxx/valid81_cache
 python $PHOME/cxx/knn_script.py	&
-cd $PHOME/cxx/valid90_cache
+cd $PHOME/cxx/valid91_cache
 python $PHOME/cxx/knn_script.py	&
-cd $PHOME/cxx/test0_cache
+cd $PHOME/cxx/test1_cache
 python $PHOME/cxx/knn_script.py	&
 
 wait

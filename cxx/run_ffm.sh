@@ -25,13 +25,13 @@ cd $PHOME/cxx/valid81_cache
 
 k=60
 echo "Start FFM k=$k"
-$PHOME/libffm-regression-bak/ffm-train -l 0.002 --no-norm --auto-stop -p ffm_te2.txt -k $k ffm_tr.txt ffm_k${k}_sel.txt
-#$PHOME/libffm-regression-bak/ffm-predict ffm_te.txt ffm_k${k}_sel.txt ffm_te_pred.${k}.txt > ffm_te_fact.${k}.txt
-#$PHOME/libffm-regression-bak/ffm-predict ffm_tr.txt ffm_k${k}_sel.txt ffm_tr_pred.${k}.txt > ffm_tr_fact.${k}.txt
+$PHOME/libffm-regression-bak/ffm-train -t 1 -l 0.002 --no-norm -k $k ffm_tr.txt ffm_k${k}_sel.txt
+$PHOME/libffm-regression-bak/ffm-predict ffm_te.txt ffm_k${k}_sel.txt ffm_te_pred.${k}.txt > ffm_te_fact.${k}.txt
+$PHOME/libffm-regression-bak/ffm-predict ffm_tr.txt ffm_k${k}_sel.txt ffm_tr_pred.${k}.txt > ffm_tr_fact.${k}.txt
 
-#pr -mts ffm_tr.txt ffm_tr_fact.${k}.txt| awk '{print $6,$7,$8,$9,$10,$11,$1}' > ffm_tr_knn_data.${k}.txt
-#pr -mts ffm_te.txt ffm_te_fact.${k}.txt| awk '{print $6,$7,$8,$9,$10,$11,$1}' > ffm_te_knn_data.${k}.txt
+pr -mts ffm_tr.txt ffm_tr_fact.${k}.txt| awk '{print $6,$7,$8,$9,$10,$11,$1}' > ffm_tr_knn_data.${k}.txt
+pr -mts ffm_te.txt ffm_te_fact.${k}.txt| awk '{print $6,$7,$8,$9,$10,$11,$1}' > ffm_te_knn_data.${k}.txt
 
-$PHOME/libffm-regression-bak/ffm-train -l 0.002 --no-norm --auto-stop -p ffm_te2.txt -k $k ffm_tr.last3.txt ffm_k${k}_sel.last3.txt
-#$PHOME/libffm-regression-bak/ffm-predict ffm_te.txt ffm_k${k}_sel.last3.txt ffm_te_pred.last3.${k}.txt > /tmp/null
+$PHOME/libffm-regression-bak/ffm-train -t 2 -l 0.002 --no-norm -k $k ffm_tr.last3.txt ffm_k${k}_sel.last3.txt
+$PHOME/libffm-regression-bak/ffm-predict ffm_te.txt ffm_k${k}_sel.last3.txt ffm_te_pred.last3.${k}.txt > /tmp/null
 
