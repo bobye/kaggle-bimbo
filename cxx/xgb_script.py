@@ -7,12 +7,12 @@ is_final=False
 num_round=80+1
 model=0
 #param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
-param = {'max_depth':7, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+param = {'max_depth':8, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 
 if model==0:
     model_name='0000.model'
-    #select=np.concatenate((np.arange(5,26), np.arange(27,31))) 
-    select=np.arange(5, 31)
+    #select=np.concatenate((np.arange(5,23), np.arange(25,36))) 
+    select=np.arange(5, 36)
 elif model==1:
     model_name='0001.model'
     select=np.arange(5, 26) #model1: without ffm features
