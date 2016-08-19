@@ -550,6 +550,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.60.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
   ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.60.txt");
+  ifstream eenn_te_pred; if(read_rest) eenn_te_pred.open("nn_te_pred.txt");
   bool first_line_valid=true;
   do {
     if (first_line_valid) {
@@ -587,9 +588,11 @@ int main(int argc, char* argv[]) {
 	  ffm_te_pred_s >> tmp;
 	  valid_file.write((char*) &tmp, sizeof(float));	
 	}
-	if (read_rest && knn_te_pred.is_open()) {
+	if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
 	  knn_te_pred >> tmp >> tmp2;
-	  valid_file.write((char*) &tmp, sizeof(float));	  
+	  valid_file.write((char*) &tmp, sizeof(float));
+	  eenn_te_pred >> tmp;
+	  valid_file.write((char*) &tmp, sizeof(float));
 	}
 
 	// write labels
@@ -633,7 +636,7 @@ int main(int argc, char* argv[]) {
   if(!write_ffm && ffm_te_pred_s.is_open() && ffm_te_pred_recent.is_open()) 
     { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   if(!write_ffm_s && ffm_te_pred_s.is_open()) { ffm_te_pred_s.close();}
-  if (read_rest) { knn_te_pred.close(); }
+  if (read_rest) { knn_te_pred.close(); eenn_te_pred.close(); }
   printf("\n");
   }
   train_file_bin.close();
@@ -653,6 +656,7 @@ int main(int argc, char* argv[]) {
   ifstream ffm_te_pred_recent; if (!write_ffm) ffm_te_pred_recent.open("ffm_te_pred.last3.60.txt");
   ifstream ffm_te_pred_s; if (!write_ffm_s) ffm_te_pred_s.open("ffm_te_pred.s.txt");
   ifstream knn_te_pred; if (read_rest) knn_te_pred.open("knn_te_pred.60.txt");
+  ifstream eenn_te_pred; if (read_rest) eenn_te_pred.open("nn_te_pred.txt");
   while (count < test_max_count) {
     int id,Semana,Agencia_ID,Canal_ID,Ruta_SAK,Cliente_ID,Producto_ID;
     float tmp, tmp2;
@@ -677,8 +681,10 @@ int main(int argc, char* argv[]) {
       ffm_te_pred_s >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
     }
-    if (read_rest && knn_te_pred.is_open()) {
+    if (read_rest && knn_te_pred.is_open() && eenn_te_pred.is_open()) {
       knn_te_pred >> tmp >> tmp2;
+      submit_file.write((char*) &tmp, sizeof(float));
+      eenn_te_pred >> tmp;
       submit_file.write((char*) &tmp, sizeof(float));
     }
     }
@@ -704,7 +710,7 @@ int main(int argc, char* argv[]) {
   if(!write_ffm && ffm_te_pred.is_open() && ffm_te_pred_recent.is_open()) 
     { ffm_te_pred.close(); ffm_te_pred_recent.close();}
   if(!write_ffm_s && ffm_te_pred_s.is_open()) { ffm_te_pred_s.close();}
-  if(read_rest) {knn_te_pred.close();}
+  if(read_rest) {knn_te_pred.close(); eenn_te_pred.close();}
   printf("\n");
   }
 
