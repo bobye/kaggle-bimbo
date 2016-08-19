@@ -16,7 +16,7 @@ module load gnutools
 PHOME=/home/jxy198/kaggle-inventory
 
 echo "Start Feature Eng!"
-cd $PHOME/cxx/valid81_cache
+cd $PHOME/cxx/test0_cache
 #$PHOME/cxx/main 71 wrr
 #cp ffm_tr.txt ffm_tr.last3.txt #validation7
 #tail -31190083 ffm_tr.txt > ffm_tr.last3.txt #validation8

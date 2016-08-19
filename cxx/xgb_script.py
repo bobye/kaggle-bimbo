@@ -4,15 +4,16 @@ import pandas as pd
 
 task='validate' # {'train','validate','predict'}
 is_final=False 
-num_round=80+1
-model=0
-#param = {'max_depth':4, 'eta':0.1, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
+num_round=90+1
+model=1
+#param = {'max_depth':4, 'eta':0.05, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 param = {'max_depth':8, 'eta':0.05, 'gamma':10, 'silent':1, 'objective':'reg:linear', 'tree_method':'exact', 'nthread':24}
 
 if model==0:
     model_name='0000.model'
-    #select=np.concatenate((np.arange(5,23), np.arange(25,36))) 
-    select=np.arange(5, 36)
+    #select=np.concatenate((np.arange(5,23), np.arange(25,30))) 
+    select=np.arange(5, 30)
+    #select=np.concatenate((np.arange(5,26), [28, 29, 32, 34]))
 elif model==1:
     model_name='0001.model'
     select=np.arange(5, 26) #model1: without ffm features
@@ -27,18 +28,6 @@ else:
     select=np.arange(0, 5) # use the raw id as features
 
 print param
-# def myobj(preds, dtrain):
-#     labels = dtrain.get_label()
-#     preds = np.maximum(preds, 0)
-#     grad = (preds - labels)
-#     hess = np.ones(preds.shape)
-#     hess[preds == 0] = 0
-#     return grad, hess
-
-# def myerror(preds, dtrain):
-#     labels = dtrain.get_label()
-#     preds = np.maximum(preds, 0)
-#     return 'error', np.sqrt(((preds - labels) ** 2).mean())
 
 def get_data(filename, size, has_history = None, reweight = None):
     "read training data from .bin file"
@@ -84,13 +73,13 @@ if task == 'train' or task == 'validate':
 	#watchlist=[(dtrain80, 'train'), (dtrain90, 'eval')]
         bst = xgb.train(param, dtrain81,
                         num_boost_round = num_round, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=3)
+                        evals=watchlist, early_stopping_rounds=1)
     elif task == 'validate':
         watchlist=[(dtrain81, 'train'), (dtrain91, 'eval')]
 	#watchlist=[(dtrain80, 'train'), (dtrain90, 'eval')]
         bst = xgb.train(param, dtrain81,
                         num_boost_round = 1000, verbose_eval=True,
-                        evals=watchlist, early_stopping_rounds=3)
+                        evals=watchlist, early_stopping_rounds=1)
     print bst.get_fscore()
     bst.save_model(model_name)
     bst.dump_model('xgb.dump', with_stats=True)
