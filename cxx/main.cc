@@ -363,6 +363,7 @@ int main(int argc, char* argv[]) {
   /* scanning training file */
   ifstream train_file_bin; train_file_bin.open("/home/jxy198/kaggle-inventory/cxx/train.bin", ios::binary); assert(train_file_bin);
   ofstream ffm_tr; if (write_ffm) ffm_tr.open("ffm_tr.txt");
+  ofstream ffm_tr_last3; if (write_ffm) ffm_tr_last3.open("ffm_tr.last3.txt");
   ofstream ffm_tr_s; if (write_ffm_s) ffm_tr_s.open("ffm_tr.s.txt");
   cout << "File Scan:\n";
   t_count = 1; 
@@ -439,6 +440,11 @@ int main(int argc, char* argv[]) {
       if (write_ffm) {
 	ffm_tr << log(Demanda_uni_equil+1) << "\t";
 	write_ffm_data(ffm_tr, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+
+	if (Semana >= valid_month - 4) {
+	  ffm_tr_last3 << log(Demanda_uni_equil+1) << "\t";
+	  write_ffm_data(ffm_tr_last3, Cliente_ID, Producto_ID, Agencia_ID, Canal_ID, Ruta_SAK, feat_count);
+	}
       }
     }
 
@@ -455,7 +461,7 @@ int main(int argc, char* argv[]) {
     t_count ++;
   }  
   printf("\n");
-  if (write_ffm) ffm_tr.close();
+  if (write_ffm) { ffm_tr.close(); ffm_tr_last3.close(); }
   if (write_ffm_s) ffm_tr_s.close();
 
 
